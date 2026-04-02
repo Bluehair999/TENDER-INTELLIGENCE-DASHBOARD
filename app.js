@@ -21,7 +21,8 @@ const App = (() => {
             order: 'desc' // asc, desc
         },
         selectedId: null,
-        theme: localStorage.getItem('tender_theme') || 'light'
+        theme: localStorage.getItem('tender_theme') || 'light',
+        history: JSON.parse(localStorage.getItem('tender_db_history')) || []
     };
 
     // --- Configuration ---
@@ -90,16 +91,27 @@ const App = (() => {
             }
             return "";
         },
-        _isAuth: false, // 세션 기반 인증 상태 (새로고침 전까지 유지)
         checkAuth() {
             if (this._isAuth) return true;
             const pw = prompt("관리자 비밀번호를 입력하세요:");
+            if (pw === null) return false; // 취소 클릭 시 즉시 중단
             if (pw !== CONFIG.adminPassword) {
                 alert("비밀번호가 틀렸습니다. 권한이 없습니다.");
                 return false;
             }
             this._isAuth = true;
             return true;
+        },
+        saveToHistory(type = 'Upload') {
+            const snapshot = {
+                timestamp: new Date().toLocaleString(),
+                type: type,
+                count: db.length,
+                data: [...db]
+            };
+            state.history.unshift(snapshot);
+            if (state.history.length > 10) state.history.pop();
+            localStorage.setItem('tender_db_history', JSON.stringify(state.history));
         }
     };
 
@@ -476,8 +488,9 @@ const App = (() => {
             
             // Reset DB
             document.getElementById('reset-db').onclick = () => {
-                if(confirm("모든 데이터를 초기화하시겠습니까?")) {
+                if(confirm("모든 데이터를 초기화하시겠습니까? (현재 데이터는 히스토리에 백업됩니다)")) {
                     if (!Helpers.checkAuth()) return;
+                    Helpers.saveToHistory('Reset');
                     localStorage.removeItem('tender_db_v3');
                     db = [];
                     this.render();
@@ -512,10 +525,12 @@ const App = (() => {
             try {
                 const { rows, ws, sheetName } = await ExcelParser.read(file);
                 const newData = ExcelParser.process(rows, ws);
+                
+                Helpers.saveToHistory('Excel Upload');
                 db = Comparator.diff(db, newData);
                 localStorage.setItem('tender_db_v3', JSON.stringify(db));
                 this.render();
-                alert(`[${sheetName}] 시트 분석 완료`);
+                alert(`[${sheetName}] 시트 분석 완료 (이전 버전은 히스토리에 저장되었습니다)`);
             } catch (err) {
                 console.error(err);
                 alert("엑셀 처리 중 오류 발생");
@@ -758,6 +773,44 @@ const App = (() => {
             } else { 
                 link.classList.add('hidden'); 
             }
+            
+            this.renderHistory();
+        },
+
+        renderHistory() {
+            const histEl = document.getElementById('history-list');
+            if (!histEl) return;
+            
+            if (state.history.length === 0) {
+                histEl.innerHTML = '<div class="empty-msg">No history found.</div>';
+                return;
+            }
+
+            histEl.innerHTML = state.history.map((h, i) => `
+                <div class="history-item">
+                    <div class="h-info">
+                        <span class="h-type">${h.type}</span>
+                        <span class="h-time">${h.timestamp}</span>
+                        <span class="h-count">${h.count} items</span>
+                    </div>
+                    <button class="btn-text btn-rollback" data-idx="${i}">Restore</button>
+                </div>
+            `).join('');
+
+            histEl.querySelectorAll('.btn-rollback').forEach(btn => {
+                btn.onclick = () => {
+                    const idx = btn.dataset.idx;
+                    const target = state.history[idx];
+                    if (confirm(`[${target.timestamp}] 버전으로 복구하시겠습니까? (현재 데이터는 다시 히스토리에 저장됩니다)`)) {
+                        if (!Helpers.checkAuth()) return;
+                        Helpers.saveToHistory('Before Rollback');
+                        db = [...target.data];
+                        localStorage.setItem('tender_db_v3', JSON.stringify(db));
+                        this.render();
+                        alert("데이터가 복구되었습니다.");
+                    }
+                };
+            });
         },
 
         renderSummary() {
@@ -864,9 +917,11 @@ const App = (() => {
             reader.onload = (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    if (Array.isArray(data)) {
-                        if (confirm(`백업 파일에서 ${data.length}개의 항목을 불러오시겠습니까? 기존 데이터는 유지되며 중복은 자동으로 처리됩니다.`)) {
-                            db = Comparator.diff(db, data); // Use diff logic to merge
+                    if (data.length > 0) {
+                        if (confirm(`백업 파일에서 ${data.length}개의 항목을 불러오시겠습니까? 현재 데이터는 히스토리에 백업됩니다.`)) {
+                            if (!Helpers.checkAuth()) return;
+                            Helpers.saveToHistory('JSON Restore');
+                            db = Comparator.diff(db, data); 
                             localStorage.setItem('tender_db_v3', JSON.stringify(db));
                             this.render();
                             alert("복구 완료");
