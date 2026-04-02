@@ -53,7 +53,8 @@ const App = (() => {
             if (s === "X" || s === "-" || s === "" || s === "(EMPTY)") return "EMPTY";
             return s;
         },
-        rates: { PLN: 405 } // 1 PLN = 405 KRW
+        rates: { PLN: 405 }, // 1 PLN = 405 KRW
+        adminPassword: '1234' // <--- 여기서 비밀번호를 변경할 수 있습니다.
     };
 
     const Helpers = {
@@ -88,6 +89,14 @@ const App = (() => {
                 }
             }
             return "";
+        },
+        checkAuth() {
+            const pw = prompt("관리자 비밀번호를 입력하세요:");
+            if (pw !== CONFIG.adminPassword) {
+                alert("비밀번호가 틀렸습니다. 권한이 없습니다.");
+                return false;
+            }
+            return true;
         }
     };
 
@@ -387,7 +396,10 @@ const App = (() => {
             const dropZone = document.getElementById('drop-zone');
 
             if (inp) {
-                document.getElementById('upload-btn').onclick = () => inp.click();
+                document.getElementById('upload-btn').onclick = () => {
+                    if (!Helpers.checkAuth()) return;
+                    inp.click();
+                };
                 inp.onchange = (e) => this.handleUpload(e.target.files[0]);
             }
 
@@ -397,7 +409,10 @@ const App = (() => {
                 dropZone.ondrop = (e) => {
                     e.preventDefault();
                     dropZone.classList.remove('dragover');
-                    if (e.dataTransfer.files.length) this.handleUpload(e.dataTransfer.files[0]);
+                    if (e.dataTransfer.files.length) {
+                        if (!Helpers.checkAuth()) return;
+                        this.handleUpload(e.dataTransfer.files[0]);
+                    }
                 };
             }
 
@@ -465,6 +480,7 @@ const App = (() => {
             // Reset DB
             document.getElementById('reset-db').onclick = () => {
                 if(confirm("모든 데이터를 초기화하시겠습니까?")) {
+                    if (!Helpers.checkAuth()) return;
                     localStorage.removeItem('tender_db_v3');
                     db = [];
                     this.render();
@@ -480,7 +496,10 @@ const App = (() => {
             
             const jsonInp = document.getElementById('json-upload');
             if (jsonInp) {
-                document.getElementById('restore-db').onclick = () => jsonInp.click();
+                document.getElementById('restore-db').onclick = () => {
+                    if (!Helpers.checkAuth()) return;
+                    jsonInp.click();
+                };
                 jsonInp.onchange = (e) => this.restoreJSON(e.target.files[0]);
             }
             
