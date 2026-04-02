@@ -264,6 +264,65 @@ tr.row-cancelled .code-text { text-decoration: line-through; }
 }
 .deadline-wrap { white-space: nowrap; }
 
+/* History Section */
+.history-section {
+    margin-top: 2.5rem;
+    padding: 1.5rem;
+    border-radius: 16px;
+    background: rgba(59, 130, 246, 0.03);
+    border: 1px dashed var(--border-glass) !important;
+}
+.history-section label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--accent-primary);
+    text-transform: uppercase;
+    margin-bottom: 15px;
+}
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-glass);
+    border-radius: 10px;
+    font-size: 0.8rem;
+}
+.hist-info {
+    display: flex;
+    flex-direction: column;
+}
+.hist-time {
+    font-weight: 700;
+    color: var(--text-high);
+}
+.hist-tag {
+    font-size: 0.7rem;
+    color: var(--text-mid);
+}
+.btn-restore {
+    padding: 4px 10px;
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.btn-restore:hover {
+    background: #2563eb;
+}
+
 /* Badges */
 .badge { 
     padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; 
@@ -452,6 +511,65 @@ tr.row-cancelled .code-text { text-decoration: line-through; }
     .dashboard-side-layout { flex-direction: row; flex-wrap: wrap; }
     .chart-card { flex: 1; min-width: 300px; }
 }
+
+/* History Section */
+.history-section {
+    margin-top: 2.5rem;
+    padding: 1.5rem;
+    border-radius: 16px;
+    background: rgba(59, 130, 246, 0.03);
+    border: 1px dashed var(--border-glass) !important;
+}
+.history-section label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--accent-primary);
+    text-transform: uppercase;
+    margin-bottom: 15px;
+}
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-glass);
+    border-radius: 10px;
+    font-size: 0.8rem;
+}
+.hist-info {
+    display: flex;
+    flex-direction: column;
+}
+.hist-time {
+    font-weight: 700;
+    color: var(--text-high);
+}
+.hist-tag {
+    font-size: 0.7rem;
+    color: var(--text-mid);
+}
+.btn-restore {
+    padding: 4px 10px;
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.btn-restore:hover {
+    background: #2563eb;
+}
     </style>
 </head>
 <body class="light-theme">
@@ -631,6 +749,14 @@ tr.row-cancelled .code-text { text-decoration: line-through; }
                     <div class="panel-footer">
                         <button id="copy-summary" class="btn-secondary"><i data-lucide="copy"></i> Copy for Report</button>
                         <a id="tender-link" href="#" target="_blank" class="btn-primary">View Tender Detail</a>
+                    </div>
+                    
+                    <!-- History Section -->
+                    <div id="history-section" class="history-section glass">
+                        <label><i data-lucide="layers"></i> Upload History (Rollback)</label>
+                        <div id="history-list" class="history-list">
+                            <!-- History items injected by JS -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1879,7 +2005,10 @@ const App = (() => {
         sort: { field: 'deadline', order: 'desc' },
         selectedId: null,
         theme: localStorage.getItem('tender_theme') || 'light',
-        calendarDate: new Date()
+        calendarDate: new Date(),
+        adminPassword: '1234',
+        _isAuth: false,
+        history: JSON.parse(localStorage.getItem('tender_db_history')) || []
     };
 
     const CONFIG = {
@@ -1936,6 +2065,59 @@ const App = (() => {
                 }
             }
             return "";
+        },
+
+        checkAuth() {
+            if (state._isAuth) return true;
+            const pw = prompt("관리자 비밀번호를 입력하세요:");
+            if (pw === null) return false;
+            if (pw === state.adminPassword) {
+                state._isAuth = true;
+                return true;
+            }
+            alert("비밀번호가 틀렸습니다.");
+            return false;
+        },
+
+        saveToHistory(type) {
+            const snapshot = {
+                timestamp: new Date().toLocaleString(),
+                type: type,
+                data: JSON.stringify(db)
+            };
+            state.history.unshift(snapshot);
+            if (state.history.length > 10) state.history.pop();
+            localStorage.setItem('tender_db_history', JSON.stringify(state.history));
+            this.renderHistory();
+        },
+
+        renderHistory() {
+            const histEl = document.getElementById('history-list');
+            if (!histEl) return;
+            if (state.history.length === 0) {
+                histEl.innerHTML = '<div class="empty-msg" style="font-size:0.75rem; text-align:center; padding:10px; opacity:0.5;">No history available</div>';
+                return;
+            }
+            histEl.innerHTML = state.history.map((h, i) => `
+                <div class="history-item">
+                    <div class="hist-info">
+                        <span class="hist-time">${h.timestamp}</span>
+                        <span class="hist-tag">[${h.type}] Record</span>
+                    </div>
+                    <button class="btn-restore" onclick="App.restoreFromHistory(${i})">Restore</button>
+                </div>
+            `).join('');
+        },
+
+        restoreFromHistory(index) {
+            if (!this.checkAuth()) return;
+            if (confirm("해당 시점으로 데이터를 복구하시겠습니까? 현재 데이터는 히스토리에 백업됩니다.")) {
+                this.saveToHistory('Before Rollback');
+                db = JSON.parse(state.history[index].data);
+                localStorage.setItem('tender_db_v3', JSON.stringify(db));
+                UI.render();
+                alert("복구 완료");
+            }
         }
     };
 
@@ -2098,7 +2280,7 @@ const App = (() => {
             const inp = document.getElementById('excel-upload');
             const dz = document.getElementById('drop-zone');
             if (inp) {
-                document.getElementById('upload-btn').onclick = () => inp.click();
+                document.getElementById('upload-btn').onclick = () => { if (Helpers.checkAuth()) inp.click(); };
                 inp.onchange = (e) => this.handleUpload(e.target.files[0]);
             }
             if (dz) {
@@ -2158,17 +2340,32 @@ const App = (() => {
                 this.renderCharts();
             };
             document.querySelector('.close-panel').onclick = () => document.getElementById('side-panel').classList.remove('active');
-            document.getElementById('reset-db').onclick = () => { if(confirm("초기화하시겠습니까?")) { localStorage.removeItem('tender_db_v3'); db = []; this.render(); } };
+            document.getElementById('reset-db').onclick = () => { 
+                if (confirm("모든 데이터를 초기화하시겠습니까? (현재 데이터는 히스토리에 백업되며, 비밀번호 확인이 필요합니다)")) {
+                    if (!Helpers.checkAuth()) return;
+                    Helpers.saveToHistory('Reset');
+                    localStorage.removeItem('tender_db_v3'); 
+                    db = []; 
+                    this.render(); 
+                } 
+            };
             document.getElementById('export-excel').onclick = () => this.export();
             document.getElementById('backup-db').onclick = () => this.backupJSON();
-            document.getElementById('restore-db').onclick = () => document.getElementById('json-upload').click();
-            document.getElementById('json-upload').onchange = (e) => this.restoreJSON(e.target.files[0]);
+            document.getElementById('restore-db').onclick = () => {
+                if (Helpers.checkAuth()) document.getElementById('json-upload').click();
+            };
+            document.getElementById('json-upload').onchange = (e) => {
+                if (!e.target.files.length) return;
+                this.restoreJSON(e.target.files[0]);
+            };
             document.getElementById('copy-summary').onclick = () => this.copyToClipboard();
         },
         async handleUpload(file) {
+            if (!Helpers.checkAuth()) return;
             const ld = document.getElementById('loading-overlay');
             if (ld) ld.classList.remove('hidden');
             try {
+                Helpers.saveToHistory('Excel Upload');
                 const { rows, ws, sheetName } = await ExcelParser.read(file);
                 db = Comparator.diff(db, ExcelParser.process(rows, ws));
                 localStorage.setItem('tender_db_v3', JSON.stringify(db));
@@ -2180,6 +2377,7 @@ const App = (() => {
             try {
                 this.syncTabs(); this.populateSelects(); this.renderKPIs(); this.renderTable(); this.renderSummary(); this.renderCharts();
                 this.renderMiniCalendar();
+                Helpers.renderHistory();
                 if (window.lucide) lucide.createIcons();
                 const updateEl = document.getElementById('last-update-time');
                 if (updateEl) updateEl.innerText = `Update: ${new Date().toLocaleTimeString()}`;
@@ -2455,7 +2653,8 @@ const App = (() => {
         showDetail: (id) => UI.showDetail(id),
         openCalendar: () => UI.openCalendar(),
         showCalendarTooltip: (el) => UI.showCalendarTooltip(el),
-        hideCalendarTooltip: () => UI.hideCalendarTooltip()
+        hideCalendarTooltip: () => UI.hideCalendarTooltip(),
+        restoreFromHistory: (index) => Helpers.restoreFromHistory(index)
     };
 })();
 App.init();
