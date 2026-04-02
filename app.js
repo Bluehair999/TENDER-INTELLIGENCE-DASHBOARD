@@ -90,12 +90,15 @@ const App = (() => {
             }
             return "";
         },
+        _isAuth: false, // 세션 기반 인증 상태 (새로고침 전까지 유지)
         checkAuth() {
+            if (this._isAuth) return true;
             const pw = prompt("관리자 비밀번호를 입력하세요:");
             if (pw !== CONFIG.adminPassword) {
                 alert("비밀번호가 틀렸습니다. 권한이 없습니다.");
                 return false;
             }
+            this._isAuth = true;
             return true;
         }
     };
@@ -396,10 +399,7 @@ const App = (() => {
             const dropZone = document.getElementById('drop-zone');
 
             if (inp) {
-                document.getElementById('upload-btn').onclick = () => {
-                    if (!Helpers.checkAuth()) return;
-                    inp.click();
-                };
+                document.getElementById('upload-btn').onclick = () => inp.click();
                 inp.onchange = (e) => this.handleUpload(e.target.files[0]);
             }
 
@@ -409,10 +409,7 @@ const App = (() => {
                 dropZone.ondrop = (e) => {
                     e.preventDefault();
                     dropZone.classList.remove('dragover');
-                    if (e.dataTransfer.files.length) {
-                        if (!Helpers.checkAuth()) return;
-                        this.handleUpload(e.dataTransfer.files[0]);
-                    }
+                    if (e.dataTransfer.files.length) this.handleUpload(e.dataTransfer.files[0]);
                 };
             }
 
@@ -496,11 +493,11 @@ const App = (() => {
             
             const jsonInp = document.getElementById('json-upload');
             if (jsonInp) {
-                document.getElementById('restore-db').onclick = () => {
-                    if (!Helpers.checkAuth()) return;
-                    jsonInp.click();
+                document.getElementById('restore-db').onclick = () => jsonInp.click();
+                jsonInp.onchange = (e) => {
+                    if (!e.target.files.length) return;
+                    this.restoreJSON(e.target.files[0]);
                 };
-                jsonInp.onchange = (e) => this.restoreJSON(e.target.files[0]);
             }
             
             // Copy
@@ -509,6 +506,7 @@ const App = (() => {
 
         async handleUpload(file) {
             if (!file) return;
+            if (!Helpers.checkAuth()) return;
             const loader = document.getElementById('loading-overlay');
             if (loader) loader.classList.remove('hidden');
             try {
@@ -861,6 +859,7 @@ const App = (() => {
 
         restoreJSON(file) {
             if (!file) return;
+            if (!Helpers.checkAuth()) return;
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
