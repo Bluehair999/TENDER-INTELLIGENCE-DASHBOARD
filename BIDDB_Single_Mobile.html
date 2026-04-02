@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tender Intelligence Dashboard (Single File Bundle)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <style>
+/* --- Inline style.css --- */
+:root {
+    --bg-main: #0f172a;
+    --bg-card: rgba(30, 41, 59, 0.7);
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --sidebar-w: 280px;
+    --accent-primary: #3b82f6;
+    --text-high: #f1f5f9;
+    --text-mid: #94a3b8;
+    --kpi-grey: #64748b;
+    --kpi-blue: #3b82f6;
+    --kpi-green: #10b981;
+    --kpi-dark-green: #065f46;
+    --kpi-orange: #f59e0b;
+    --kpi-red: #ef4444;
+}
+
+.light-theme {
+    --bg-main: #f8fafc;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --border-glass: rgba(148, 163, 184, 0.15);
+    --text-high: #0f172a;
+    --text-mid: #64748b;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background-color: var(--bg-main);
+    color: var(--text-high);
+    font-family: 'Pretendard', sans-serif;
+    line-height: 1.4;
+    overflow-x: hidden;
+    transition: background 0.3s;
+}
+
+.glass {
+    background: var(--bg-card);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-glass);
+}
+
+.shadow { box-shadow: 0 20px 60px -15px rgba(0,0,0,0.3); }
+
+/* Layout Control */
+.app-wrapper { padding: 1.5rem 2.5rem; max-width: 1800px; margin: 0 auto; }
+
+/* Header */
+.main-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1.2rem 2rem; border-radius: 0 0 20px 20px; margin-bottom: 2rem;
+    position: sticky; top: 0; z-index: 1000;
+}
+.header-left { display: flex; align-items: center; gap: 15px; }
+.brand-icon { width: 32px; height: 32px; color: var(--accent-primary); }
+.brand-title { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px; font-family: 'Outfit'; display: flex; align-items: baseline; gap: 10px; }
+.brand-title span { color: var(--accent-primary); opacity: 0.8; }
+.dept-tag { 
+    font-size: 0.65rem; font-weight: 500; color: var(--text-mid); opacity: 0.6; 
+    border-left: 1px solid var(--border-glass); padding-left: 8px; font-family: 'Pretendard';
+}
+
+.header-right { display: flex; align-items: center; gap: 2rem; }
+.update-ts { font-size: 0.8rem; color: var(--text-mid); font-family: 'Outfit'; }
+.upload-controls { display: flex; gap: 10px; }
+
+/* Upload Group */
+.upload-wrapper { display: flex; align-items: center; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 14px; border: 1px solid var(--border-glass); gap: 4px; }
+.drop-zone {
+    padding: 0 15px; height: 40px; border-radius: 10px; border: 1px dashed var(--border-glass);
+    display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-mid);
+    cursor: default; transition: 0.2s;
+}
+.drop-zone.dragover { background: rgba(59, 130, 246, 0.1); border-color: var(--accent-primary); color: var(--accent-primary); }
+.drop-zone i { width: 14px; }
+
+.upload-btn {
+    background: var(--accent-primary); color: white; padding: 0 18px; height: 40px;
+    border-radius: 10px; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; transition: 0.2s;
+}
+.upload-btn:hover { background: #2563eb; }
+.btn-icon {
+    width: 40px; height: 40px; border-radius: 12px; background: transparent;
+    border: 1px solid var(--border-glass); color: var(--text-mid);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
+}
+.btn-icon:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
+.btn-icon.danger:hover { color: var(--kpi-red); border-color: var(--kpi-red); }
+
+/* KPI Section */
+.kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1.25rem; margin-bottom: 2.5rem; }
+.kpi-card {
+    padding: 1.25rem; border-radius: 16px; background: var(--bg-card);
+    border: 1px solid var(--border-glass); cursor: pointer; transition: 0.3s;
+    display: flex; flex-direction: column; justify-content: space-between;
+}
+.kpi-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-color: rgba(255,255,255,0.2); }
+.kpi-value { font-size: 2.2rem; font-weight: 800; margin-bottom: 5px; font-family: 'Outfit'; letter-spacing: -1px; }
+.kpi-label { font-size: 0.8rem; font-weight: 600; opacity: 0.7; }
+
+.kpi-card.grey .kpi-value { color: var(--kpi-grey); }
+.kpi-card.blue .kpi-value { color: var(--kpi-blue); }
+.kpi-card.green .kpi-value { color: var(--kpi-green); }
+.kpi-card.dark-green .kpi-value { color: var(--kpi-dark-green); }
+.kpi-card.orange .kpi-value { color: var(--kpi-orange); }
+.kpi-card.red .kpi-value { color: var(--kpi-red); }
+
+/* Filter Bar */
+.filter-section { padding: 1.5rem; border-radius: 20px; margin-bottom: 2rem; }
+.filter-bar { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.main-search { flex: 2; min-width: 300px; position: relative; }
+.main-search i { position: absolute; left: 15px; top: 12px; color: var(--text-mid); width: 18px; }
+.main-search input {
+    width: 100%; background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass);
+    padding: 12px 12px 12px 45px; border-radius: 12px; color: var(--text-high); outline: none; font-family: inherit;
+}
+.light-theme .main-search input { background: white; }
+.selects { display: flex; gap: 10px; }
+select {
+    padding: 10px 15px; border-radius: 10px; background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border-glass); color: var(--text-high); font-family: inherit; cursor: pointer;
+}
+.light-theme select { background: white; }
+.btn-text { background: transparent; border: none; font-weight: 600; color: var(--accent-primary); cursor: pointer; font-size: 0.85rem; }
+
+/* Main Content Layout */
+.main-content-layout { display: grid; grid-template-columns: 1fr 340px; gap: 2rem; align-items: start; }
+
+.table-container-outer { border-radius: 24px; padding: 1.5rem; overflow: hidden; }
+.table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 20px; }
+.tabs { display: flex; gap: 5px; background: rgba(0,0,0,0.1); padding: 5px; border-radius: 12px; }
+.tab-btn {
+    border: none; background: transparent; padding: 10px 18px; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 700; color: var(--text-mid); cursor: pointer;
+}
+.tab-btn.active { background: var(--bg-main); color: var(--accent-primary); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.summary-text { font-size: 0.9rem; color: var(--text-high); font-weight: 500; font-family: 'Outfit'; flex: 1; text-align: right; margin-right: 15px; }
+
+.table-wrapper { overflow-x: auto; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
+th { 
+    text-align: left; padding: 18px 12px; border-bottom: 2px solid var(--border-glass); 
+    font-size: 0.72rem; color: var(--text-mid); font-weight: 800; text-transform: uppercase; 
+    letter-spacing: 0.5px; white-space: nowrap; transition: 0.2s; position: relative; line-height: 1.5; 
+}
+th[data-sort]:hover { color: var(--accent-primary); background: rgba(255,255,255,0.02); }
+
+/* Column Resizer */
+.resizer {
+    position: absolute; right: 0; top: 0; width: 6px; height: 100%;
+    cursor: col-resize; -webkit-user-select: none; user-select: none; z-index: 10;
+}
+.resizer:hover, .resizing .resizer { background: var(--accent-primary); opacity: 0.3; }
+.resizing { border-right: 2px solid var(--accent-primary) !important; }
+td { 
+    padding: 0; border-bottom: 1px solid var(--border-glass); 
+    vertical-align: top !important; line-height: 1.5; font-family: 'Pretendard', sans-serif;
+}
+
+.cell-content { padding: 20px 12px; min-height: 100%; box-sizing: border-box; display: block; font-size: 0.82rem; }
+.align-center .cell-content { text-align: center; }
+.cell-content small { display: block; font-size: 0.72rem; color: var(--text-mid); margin-top: 5px; line-height: 1.2; }
+
+.projectName-wrap {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+    max-height: 2.8em;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-high);
+    min-width: 250px;
+    max-width: 640px;
+    word-break: break-all;
+    margin: 0;
+}
+
+.employer-wrap {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.8rem;
+    color: var(--text-mid);
+}
+
+.hidden { display: none !important; }
+.jv-wrap { max-width: 180px; font-size: 0.75rem; color: var(--text-mid); }
+.code-text { font-weight: 700; font-size: 0.75rem; color: var(--text-mid); white-space: nowrap; display: flex; align-items: center; }
+
+/* Work Type Badges */
+.work-badge { padding: 1px 4px; border-radius: 4px; font-size: 10px; font-weight: 700; margin-left: 4px; }
+.work-p { background: #dbeafe; color: #1e40af; }
+.work-n { background: #fef3c7; color: #92400e; }
+.work-pb { background: #fce7f3; color: #9d174d; }
+
+/* Toggle Switch */
+.toggle-group { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--accent-primary); }
+input:checked + .slider:before { transform: translateX(16px); }
+.toggle-label { font-size: 11px; font-weight: 600; color: var(--text-mid); }
+
+/* Strike-through row */
+tr.row-cancelled { opacity: 0.6; }
+tr.row-cancelled .projectName-wrap { text-decoration: line-through; }
+tr.row-cancelled .code-text { text-decoration: line-through; }
+
+/* Responsive Adjustments */
+@media (max-width: 1200px) {
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    .main-content-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+    .app-wrapper { padding: 1rem; }
+    .main-header { flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1rem; }
+    .header-right { flex-direction: column; align-items: stretch; width: 100%; gap: 1rem; }
+    .upload-controls { flex-wrap: wrap; justify-content: center; }
+    .update-ts { text-align: center; font-size: 0.7rem; }
+    
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+    .kpi-value { font-size: 1.6rem; }
+    
+    .filter-bar { gap: 10px; }
+    .main-search { min-width: 100%; }
+    .selects { width: 100%; overflow-x: auto; padding-bottom: 5px; }
+    
+    .table-header { flex-direction: column; align-items: stretch; gap: 15px; }
+    .summary-text { text-align: left; margin: 0; font-size: 0.8rem; }
+    
+    .side-panel { width: 100%; right: -100%; }
+    .panel-content { padding: 1.5rem; }
+    .info-listing { grid-template-columns: 1fr; gap: 1rem; }
+    
+    /* Table touch scroll assist */
+    .table-wrapper { -webkit-overflow-scrolling: touch; }
+}
+.deadline-wrap { white-space: nowrap; }
+
+/* Badges */
+.badge { 
+    padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; 
+    display: inline-block; vertical-align: top; margin: 0; line-height: 1.2;
+}
+.badge-new { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+.badge-updated { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
+.badge-unchanged { background: rgba(148, 163, 184, 0.1); color: #94a3b8; }
+.badge-closed { background: rgba(239, 68, 68, 0.05); color: #94a3b8; border: 1px dashed rgba(148, 163, 184, 0.4); text-decoration: line-through; }
+
+.part-o { color: var(--accent-primary); font-weight: 800; }
+.part-x { color: var(--text-mid); opacity: 0.5; }
+
+/* Side Dashboard */
+.dashboard-side-layout { display: flex; flex-direction: column; gap: 1.5rem; }
+.chart-card { padding: 1.5rem; border-radius: 20px; }
+.chart-card h3 { font-size: 0.9rem; margin-bottom: 1rem; color: var(--text-mid); }
+.canvas-wrap { height: 180px; position: relative; }
+
+/* Side Panel */
+.side-panel {
+    position: fixed; top: 0; right: -650px; width: 650px; height: 100vh;
+    background: var(--bg-main); z-index: 2000; transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    border-left: 1px solid var(--border-glass);
+}
+.side-panel.active { right: 0; }
+.panel-content { height: 100%; display: flex; flex-direction: column; padding: 2.5rem; overflow-y: auto; }
+.p-badge { background: var(--accent-primary); color: white; display: inline-block; margin-bottom: 8px; padding: 4px 12px; border-radius: 6px; font-weight: 800; font-size: 0.75rem; }
+.p-title-area h2 { font-size: 1.35rem; font-weight: 800; margin-bottom: 10px; line-height: 1.4; color: var(--text-high); }
+.close-panel { position: absolute; right: 1.5rem; top: 1.5rem; background: transparent; border: none; color: var(--text-mid); cursor: pointer; padding: 10px; }
+
+.info-group { margin-top: 2rem; }
+.info-group label { display: block; font-size: 0.7rem; font-weight: 800; color: var(--text-mid); text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px; }
+.info-listing { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.info-cell { display: flex; flex-direction: column; gap: 4px; }
+.info-cell span:first-child { font-size: 0.75rem; font-weight: 600; opacity: 0.6; }
+.info-cell span:last-child { font-size: 0.95rem; font-weight: 500; }
+
+.long-text { background: rgba(0,0,0,0.15); padding: 1.5rem; border-radius: 12px; font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; }
+.diff-section { margin-top: 2rem; padding: 1.5rem; border-radius: 16px; border-color: var(--kpi-orange) !important; background: rgba(245, 158, 11, 0.05); }
+
+.diff-list { display: flex; flex-direction: column; gap: 10px; }
+.diff-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; }
+.old-val { text-decoration: line-through; color: var(--text-mid); }
+.new-val { color: var(--kpi-green); font-weight: 700; }
+
+.panel-footer { margin-top: auto; display: flex; gap: 10px; padding-top: 2rem; }
+.btn-primary { flex: 1; padding: 14px; background: var(--accent-primary); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; text-align: center; text-decoration: none; }
+.btn-secondary { padding: 14px; background: transparent; border: 1px solid var(--border-glass); color: var(--text-high); border-radius: 12px; font-weight: 700; cursor: pointer; }
+
+/* D-day colors */
+.dd-red { color: var(--kpi-red); font-weight: 800; }
+.dd-orange { color: var(--kpi-orange); font-weight: 800; }
+.dd-gray { color: #94a3b8; font-weight: 500; opacity: 0.7; }
+
+/* Loading */
+.loading-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000;
+    display: flex; align-items: center; justify-content: center;
+}
+.spinner { width: 50px; height: 50px; border: 4px solid var(--text-mid); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1400px) {
+    .main-content-layout { grid-template-columns: 1fr; }
+    .dashboard-side-layout { flex-direction: row; flex-wrap: wrap; }
+    .chart-card { flex: 1; min-width: 300px; }
+}
+    </style>
+</head>
+<body class="light-theme">
+    <div class="app-wrapper">
+        <header class="main-header glass">
+            <div class="header-left">
+                <i data-lucide="shield-check" class="brand-icon"></i>
+                <h1 class="brand-title">TENDER <span>INTELLIGENCE</span> DASHBOARD <small class="dept-tag">by 철도4부</small></h1>
+            </div>
+            <div class="header-right">
+                <div id="last-update-time" class="update-ts">Update: -</div>
+                <div class="upload-controls">
+                    <button id="export-excel" class="btn-icon" title="Excel 내보내기"><i data-lucide="download"></i></button>
+                    <button id="backup-db" class="btn-icon" title="데이터 백업 (JSON)"><i data-lucide="file-json"></i></button>
+                    <button id="restore-db" class="btn-icon" title="데이터 복구 (JSON)"><i data-lucide="upload"></i></button>
+                    <button id="reset-db" class="btn-icon danger" title="데이터 초기화"><i data-lucide="trash-2"></i></button>
+                    <button id="theme-toggle" class="btn-icon theme-btn" title="테마 전환"><i data-lucide="sun" class="light-icon"></i><i data-lucide="moon" class="dark-icon"></i></button>
+                    <input type="file" id="json-upload" hidden accept=".json">
+                    
+                    <div class="upload-wrapper">
+                        <div id="drop-zone" class="drop-zone">
+                            <i data-lucide="mouse-pointer-2"></i>
+                            <span>Drop here</span>
+                        </div>
+                        <div id="upload-btn" class="upload-btn">
+                            <i data-lucide="upload-cloud"></i>
+                            <span>Excel 업로드</span>
+                            <input type="file" id="excel-upload" hidden accept=".xlsx, .xls">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section class="kpi-section">
+            <div class="kpi-grid">
+                <div class="kpi-card grey" data-filter="all">
+                    <div class="kpi-value" id="kpi-total">0</div>
+                    <div class="kpi-label">Total Tenders</div>
+                </div>
+                <div class="kpi-card blue" data-filter="participation-o">
+                    <div class="kpi-value" id="kpi-participation">0</div>
+                    <div class="kpi-label">Participation (O)</div>
+                </div>
+                <div class="kpi-card green" data-filter="award-o">
+                    <div class="kpi-value" id="kpi-award">0</div>
+                    <div class="kpi-label">Award (Winner)</div>
+                </div>
+                <div class="kpi-card dark-green" data-filter="new-only">
+                    <div class="kpi-value" id="kpi-new">0</div>
+                    <div class="kpi-label">New Added</div>
+                </div>
+                <div class="kpi-card orange" data-filter="updated-only">
+                    <div class="kpi-value" id="kpi-updated">0</div>
+                    <div class="kpi-label">Updated Info</div>
+                </div>
+                <div class="kpi-card red" data-filter="deadline-risk">
+                    <div class="kpi-value" id="kpi-risk">0</div>
+                    <div class="kpi-label">Deadline Risk (D-7)</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="filter-section glass">
+            <div class="filter-bar">
+                <div class="filter-group main-search">
+                    <i data-lucide="search" class="f-icon"></i>
+                    <input type="text" id="global-search" placeholder="Search Project or Employer...">
+                </div>
+                <div class="filter-group selects">
+                    <select id="filter-country" title="국가별 필터"><option value="">All Countries</option></select>
+                    <select id="filter-employer" title="발주처별 필터"><option value="">All Employers</option></select>
+                    <select id="filter-status" title="상태별 필터"><option value="">All Status</option></select>
+                    <select id="filter-deadline" title="마감일별 필터"><option value="">All Deadline</option><option value="7">D-7</option><option value="30">D-30</option></select>
+                </div>
+                <div class="filter-group toggle-group">
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-hidden" title="숨김 및 취소선 항목 포함">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="toggle-label text-sm">Include Cancelled</span>
+                </div>
+                <button id="reset-filters" class="btn-text">Reset Filters</button>
+            </div>
+        </section>
+
+        <section class="main-content-layout">
+            <div class="table-container-outer glass">
+                <div class="table-header">
+                    <div class="tabs" id="view-tabs">
+                        <button class="tab-btn" data-tab="updated-only">Updated</button>
+                        <button class="tab-btn" data-tab="new-only">New</button>
+                        <button class="tab-btn active" data-tab="all">All List</button>
+                        <button class="tab-btn" data-tab="deadline-risk">Deadline Risk</button>
+                        <button class="tab-btn" data-tab="participation-o">Part. O</button>
+                        <button class="tab-btn" data-tab="award-o">Award O</button>
+                    </div>
+                    <div id="summary-sentence" class="summary-text">Waiting for data...</div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="main-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="updateType">Status</th>
+                                <th data-sort="code">Code</th>
+                                <th data-sort="projectName">Project Name</th>
+                                <th data-sort="employer">Employer</th>
+                                <th data-sort="participation" class="align-center">Part.</th>
+                                <th data-sort="award" class="align-center">Award</th>
+                                <th data-sort="deadline">Deadline</th>
+                                <th data-sort="jv">JV / Consor.</th>
+                                <th data-sort="krw">Budget (KRW)</th>
+                                <th>Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <tr><td colspan="10" class="empty-msg">Waiting for data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="dashboard-side-layout">
+                <div class="chart-card glass">
+                    <h3>Status Distribution</h3>
+                    <div class="canvas-wrap"><canvas id="chart-status"></canvas></div>
+                </div>
+                <div class="chart-card glass">
+                    <h3>Award & Part. Stat</h3>
+                    <div class="canvas-wrap"><canvas id="chart-award"></canvas></div>
+                </div>
+                <div class="chart-card glass">
+                    <h3>Top Countries</h3>
+                    <div class="canvas-wrap"><canvas id="chart-country"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <div id="side-panel" class="side-panel shadow">
+            <div class="panel-content">
+                <header class="panel-header">
+                    <div class="p-title-area">
+                        <span id="p-badge" class="p-badge">CODE</span>
+                        <h2 id="p-project-name">Project Title</h2>
+                    </div>
+                    <button class="close-panel"><i data-lucide="x"></i></button>
+                </header>
+                <div class="panel-body">
+                    <div class="info-group">
+                        <label>Essential Info</label>
+                        <div class="info-listing" id="p-essential"></div>
+                    </div>
+                    <div class="info-group">
+                        <label>Budget & KRW</label>
+                        <div class="info-listing" id="p-budget"></div>
+                    </div>
+                    <div class="info-group">
+                        <label>Deadline & Dates</label>
+                        <div class="info-listing" id="p-dates"></div>
+                    </div>
+                    <div class="info-group">
+                        <label>Current Status</label>
+                        <div id="p-current-status" class="long-text"></div>
+                    </div>
+                    <div id="diff-section" class="diff-section glass hidden">
+                        <label><i data-lucide="history"></i> Information Changes (Diff)</label>
+                        <div id="diff-list" class="diff-list"></div>
+                    </div>
+                    <div class="panel-footer">
+                        <button id="copy-summary" class="btn-secondary"><i data-lucide="copy"></i> Copy for Report</button>
+                        <a id="tender-link" href="#" target="_blank" class="btn-primary">View Tender Detail</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+/* --- Inline app.js --- */
+const App = (() => {
+    let db = JSON.parse(localStorage.getItem('tender_db_v3')) || [];
+    let state = {
+        filters: { search: '', country: '', status: '', deadline: '', employer: '', tab: 'all', includeHidden: false },
+        sort: { field: 'deadline', order: 'desc' },
+        selectedId: null,
+        theme: localStorage.getItem('tender_theme') || 'light'
+    };
+
+    const CONFIG = {
+        sheetTarget: '2026',
+        headerKeywords: ["project name", "country", "employer", "사업명", "발주처", "project", "code"],
+        essentialFields: ['projectName', 'employer', 'participation', 'award', 'deadlineRaw', 'budget', 'krw', 'currentStatus', 'jv', 'evaluation'],
+        norm: (s) => String(s || "").replace(/\s+/g, '').toLowerCase(),
+        cleanCode: (c) => {
+            if (typeof c === 'object' && c !== null && 'cleaned' in c) return c;
+            const str = String(c || "").trim();
+            let type = null;
+            let cleaned = str;
+            const upper = str.toUpperCase();
+            if (upper.endsWith("_P")) { type = "P"; cleaned = str.slice(0, -2); }
+            else if (upper.endsWith("_N")) { type = "N"; cleaned = str.slice(0, -2); }
+            else if (upper.endsWith("_PB")) { type = "PB"; cleaned = str.slice(0, -3); }
+            else if (upper.endsWith("_DB")) { type = "PB"; cleaned = str.slice(0, -3); }
+            return { cleaned: cleaned.trim(), type };
+        },
+        generateId: (code, pName, emp) => {
+            const { cleaned } = CONFIG.cleanValue(code) === 'EMPTY' ? { cleaned: "" } : CONFIG.cleanCode(code);
+            const n = CONFIG.norm;
+            return cleaned ? n(cleaned) : `${n(pName)}_${n(emp)}`;
+        },
+        cleanValue: (v) => {
+            const s = String(v || "").trim().toUpperCase();
+            if (s === "X" || s === "-" || s === "" || s === "(EMPTY)") return "EMPTY";
+            return s;
+        },
+        rates: { PLN: 405 }
+    };
+
+    const Helpers = {
+        extractNum(str) {
+            const m = String(str).match(/[\d,.]+/);
+            return m ? parseFloat(m[0].replace(/,/g, '')) : NaN;
+        },
+        calculateKRW(budgetStr, existingKRW) {
+            const str = String(budgetStr || "");
+            const krwMatch = str.match(/([\d,.]+)\s*억원/);
+            if (krwMatch) return `${krwMatch[1]} 억원`;
+            if (existingKRW && String(existingKRW).trim() !== "") return String(existingKRW).trim();
+            const num = this.extractNum(str);
+            if (str.includes('~')) {
+                const parts = str.split('~').map(p => {
+                    const n = this.extractNum(p);
+                    return !isNaN(n) ? ((n * CONFIG.rates.PLN) / 100000000).toFixed(1) : null;
+                }).filter(v => v !== null);
+                return parts.length > 0 ? `${parts.join(' ~ ')} 억원` : "";
+            } else {
+                if (!isNaN(num) && num > 100) {
+                    const won = (num * CONFIG.rates.PLN) / 100000000;
+                    return `${won.toFixed(1)} 억원`;
+                }
+            }
+            return "";
+        }
+    };
+
+    const DateUtils = {
+        parseDate(str) {
+            if (!str) return null;
+            const s = String(str).trim();
+            const match = s.match(/(\d{4})[./-](\d{2})[./-](\d{2})/);
+            if (match) return new Date(`${match[1]}-${match[2]}-${match[3]}`);
+            return null;
+        },
+        getDDay(date) {
+            if (!date) return null;
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            const diff = date - now;
+            return Math.ceil(diff / (1000 * 60 * 60 * 24));
+        }
+    };
+
+    const ExcelParser = {
+        async read(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellStyles: true });
+                    const targetSheet = workbook.SheetNames.find(n => n.includes(CONFIG.sheetTarget)) || workbook.SheetNames[0];
+                    const ws = workbook.Sheets[targetSheet];
+                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+                    resolve({ rows, ws, sheetName: targetSheet });
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        },
+        process(rows, ws) {
+            const data = [];
+            let currentHeaders = null;
+            rows.forEach((row, rowIndex) => {
+                const rowStr = row.map(c => String(c).trim().toLowerCase());
+                const isHeader = CONFIG.headerKeywords.some(k => rowStr.includes(k));
+                if (isHeader) {
+                    currentHeaders = row.map(c => String(c).trim().replace(/\s+/g, ' '));
+                    return;
+                }
+                if (currentHeaders && row.length > 0) {
+                    const obj = {};
+                    currentHeaders.forEach((h, i) => { if (h) obj[h] = row[i]; });
+                    const rangeIdx = XLSX.utils.decode_range(ws['!ref'] || "A1:Z500");
+                    const absoluteRowIndex = rangeIdx.s.r + rowIndex;
+                    let isRowHidden = false;
+                    const rowMeta = ws['!rows'] ? ws['!rows'][absoluteRowIndex] : null;
+                    if (rowMeta && (rowMeta.hidden || rowMeta.hpt === 0 || rowMeta.hpx === 0)) isRowHidden = true;
+                    const getRawCell = (keys) => {
+                        for (const pk of keys) {
+                            const idx = currentHeaders.findIndex(h => h.toLowerCase() === pk.toLowerCase());
+                            if (idx !== -1) return ws[XLSX.utils.encode_cell({ r: rowIndex, c: idx })];
+                        }
+                        return null;
+                    };
+                    const pnCell = getRawCell(["Project Name", "사업명", "project"]);
+                    const isStriked = (pnCell && pnCell.s && pnCell.s.font && pnCell.s.font.strike);
+                    const get = (keys) => {
+                        for (const pk of keys) {
+                            const foundKey = Object.keys(obj).find(ok => ok.toLowerCase() === pk.toLowerCase());
+                            if (foundKey) return obj[foundKey];
+                        }
+                        return "";
+                    };
+                    const projectName = String(get(["Project Name", "사업명", "project"])).trim();
+                    if (!projectName || projectName.toLowerCase() === "project name" || projectName.toLowerCase().includes("country")) return;
+                    const { cleaned: codeStr, type: workType } = CONFIG.cleanCode(get(["Code", "번호", "입찰번호"]));
+                    const deadline = DateUtils.parseDate(get(["Deadline", "제출마감일", "마감일"]));
+                    data.push({
+                        id: CONFIG.generateId(codeStr, projectName, get(["Employer", "발주처"])),
+                        code: codeStr, workType, no: String(get(["No", "no."])).trim(), projectName,
+                        employer: get(["Employer", "발주처"]) || "N/A", country: get(["Country", "국가"]) || "N/A",
+                        noticeDate: get(["Notice Date", "공고일"]),
+                        deadlineRaw: String(get(["Deadline", "마감일"]) || "").split('(')[0].trim(),
+                        deadlineObj: deadline, dDay: DateUtils.getDDay(deadline),
+                        participation: String(get(["Participation", "참여여부"]) || "").toUpperCase().trim(),
+                        award: (() => {
+                            const s = String(get(["수주", "Award"]) || "").toUpperCase().trim();
+                            return (s === 'O' || s === 'WINNER' || s === 'WON' || s === 'SELECTED') ? 'O' : 'X';
+                        })(),
+                        budget: get(["Final Budget", "Estimated Budget", "Budget"]),
+                        krw: Helpers.calculateKRW(get(["Final Budget", "Estimated Budget", "Budget"]), get(["KRW", "원화"])),
+                        currentStatus: get(["Current status", "진행현황", "상태"]), jv: get(["JV", "컨소시엄"]),
+                        evaluation: get(["Evaluation", "평가방식", "Evaluation Criteria"]), tenderLink: get(["Site Link", "Link", "링크"]),
+                        isHidden: isRowHidden || isStriked, updateType: 'UNCHANGED', changedFields: []
+                    });
+                }
+            });
+            return data;
+        }
+    };
+
+    const Comparator = {
+        diff(oldData, newData) {
+            const now = new Date().toISOString();
+            const finalMap = new Map();
+            oldData.forEach(item => {
+                const migratedId = CONFIG.generateId(item.code, item.projectName, item.employer);
+                const updated = { ...item, id: migratedId, updateType: (item.updateType === 'NEW' || item.updateType === 'UPDATED') ? 'UNCHANGED' : item.updateType, foundInCurrentSync: false };
+                finalMap.set(updated.id, updated);
+            });
+            newData.forEach(row => {
+                let existing = finalMap.get(row.id);
+                if (!existing) {
+                    const normName = CONFIG.norm(row.projectName);
+                    existing = Array.from(finalMap.values()).find(v => !v.foundInCurrentSync && CONFIG.norm(v.projectName) === normName);
+                    if (existing) { finalMap.delete(existing.id); existing.id = row.id; finalMap.set(row.id, existing); }
+                }
+
+                if (row.isHidden) {
+                    finalMap.set(row.id, { ...row, updateType: 'CLOSED', lastFound: now, foundInCurrentSync: true });
+                } else if (!existing) {
+                    finalMap.set(row.id, { ...row, updateType: 'NEW', lastFound: now, foundInCurrentSync: true });
+                } else {
+                    const diffs = [];
+                    CONFIG.essentialFields.forEach(f => {
+                        if (CONFIG.cleanValue(existing[f]) !== CONFIG.cleanValue(row[f])) diffs.push({ field: f, old: existing[f] || "(Empty)", new: row[f] || "(Empty)" });
+                    });
+                    if (diffs.length > 0) finalMap.set(row.id, { ...existing, ...row, updateType: 'UPDATED', changedFields: diffs, lastFound: now, foundInCurrentSync: true });
+                    else finalMap.set(row.id, { ...existing, lastFound: now, foundInCurrentSync: true });
+                }
+            });
+            finalMap.forEach(item => { if (!item.foundInCurrentSync && item.updateType !== 'CLOSED') item.updateType = 'CLOSED'; });
+            return Array.from(finalMap.values());
+        }
+    };
+
+    const UI = {
+        init() { this.migrate(); this.bindEvents(); this.render(); if (window.lucide) lucide.createIcons(); },
+        migrate() {
+            let changed = false;
+            db = db.map(d => {
+                let u = { ...d };
+                const nK = Helpers.calculateKRW(d.budget, d.krw);
+                if (nK !== d.krw) { u.krw = nK; changed = true; }
+                if (d.deadlineRaw && String(d.deadlineRaw).includes('(')) { u.deadlineRaw = String(d.deadlineRaw).split('(')[0].trim(); changed = true; }
+                const { cleaned, type } = CONFIG.cleanCode(u.code);
+                if (cleaned !== u.code || (type && type !== u.workType)) {
+                    u.code = cleaned;
+                    if (type) u.workType = type;
+                    u.id = CONFIG.generateId(cleaned, d.projectName, d.employer);
+                    changed = true;
+                }
+                if (u.updateType === 'UPDATED' && u.changedFields) {
+                    const rD = u.changedFields.filter(f => CONFIG.cleanValue(f.old) !== CONFIG.cleanValue(f.new));
+                    if (rD.length !== u.changedFields.length) { u.changedFields = rD; changed = true; }
+                    if (u.changedFields.length === 0) { u.updateType = 'UNCHANGED'; changed = true; }
+                }
+                return u;
+            });
+            if (changed) localStorage.setItem('tender_db_v3', JSON.stringify(db));
+        },
+        bindEvents() {
+            const inp = document.getElementById('excel-upload');
+            const dz = document.getElementById('drop-zone');
+            if (inp) {
+                document.getElementById('upload-btn').onclick = () => inp.click();
+                inp.onchange = (e) => this.handleUpload(e.target.files[0]);
+            }
+            if (dz) {
+                dz.ondragover = (e) => { e.preventDefault(); dz.classList.add('dragover'); };
+                dz.ondragleave = () => dz.classList.remove('dragover');
+                dz.ondrop = (e) => { e.preventDefault(); dz.classList.remove('dragover'); if (e.dataTransfer.files.length) this.handleUpload(e.dataTransfer.files[0]); };
+            }
+            document.getElementById('toggle-hidden').onchange = (e) => { state.filters.includeHidden = e.target.checked; this.render(); };
+            document.getElementById('global-search').oninput = (e) => { state.filters.search = e.target.value; this.render(); };
+            document.getElementById('filter-country').onchange = (e) => { state.filters.country = e.target.value; this.render(); };
+            document.getElementById('filter-employer').onchange = (e) => { state.filters.employer = e.target.value; this.render(); };
+            document.getElementById('filter-status').onchange = (e) => { state.filters.status = e.target.value; this.render(); };
+            document.getElementById('filter-deadline').onchange = (e) => { state.filters.deadline = e.target.value; this.render(); };
+            document.getElementById('reset-filters').onclick = () => {
+                state.filters = { search: '', country: '', status: '', deadline: '', employer: '', tab: 'all', includeHidden: false };
+                state.sort = { field: 'deadline', order: 'desc' };
+                document.getElementById('global-search').value = '';
+                ['filter-country', 'filter-employer', 'filter-status', 'filter-deadline'].forEach(id => document.getElementById(id).value = '');
+                document.getElementById('toggle-hidden').checked = false;
+                this.render();
+            };
+            document.querySelectorAll('.kpi-card').forEach(card => card.onclick = () => {
+                const f = card.dataset.filter;
+                const tab = document.querySelector(`.tab-btn[data-tab="${f}"]`);
+                if (tab) tab.click(); else { state.filters.tab = f; this.render(); }
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active'); state.filters.tab = btn.dataset.tab; this.render();
+            });
+            document.querySelectorAll('#main-table th').forEach(th => {
+                const f = th.dataset.sort; if (!f) return;
+                th.style.cursor = 'pointer';
+                th.onclick = () => {
+                    if (state.sort.field === f) state.sort.order = state.sort.order === 'asc' ? 'desc' : 'asc';
+                    else { state.sort.field = f; state.sort.order = 'asc'; }
+                    this.render();
+                };
+            });
+            document.getElementById('theme-toggle').onclick = () => {
+                state.theme = state.theme === 'dark' ? 'light' : 'dark';
+                document.body.className = state.theme + '-theme';
+                localStorage.setItem('tender_theme', state.theme);
+                this.renderCharts();
+            };
+            document.querySelector('.close-panel').onclick = () => document.getElementById('side-panel').classList.remove('active');
+            document.getElementById('reset-db').onclick = () => { if(confirm("초기화하시겠습니까?")) { localStorage.removeItem('tender_db_v3'); db = []; this.render(); } };
+            document.getElementById('export-excel').onclick = () => this.export();
+            document.getElementById('backup-db').onclick = () => this.backupJSON();
+            document.getElementById('restore-db').onclick = () => document.getElementById('json-upload').click();
+            document.getElementById('json-upload').onchange = (e) => this.restoreJSON(e.target.files[0]);
+            document.getElementById('copy-summary').onclick = () => this.copyToClipboard();
+        },
+        async handleUpload(file) {
+            const ld = document.getElementById('loading-overlay');
+            if (ld) ld.classList.remove('hidden');
+            try {
+                const { rows, ws, sheetName } = await ExcelParser.read(file);
+                db = Comparator.diff(db, ExcelParser.process(rows, ws));
+                localStorage.setItem('tender_db_v3', JSON.stringify(db));
+                this.render(); alert(`[${sheetName}] 완료`);
+            } catch (err) { console.error(err); alert("오류 발생"); }
+            finally { if (ld) ld.classList.add('hidden'); }
+        },
+        render() {
+            try {
+                this.syncTabs(); this.populateSelects(); this.renderKPIs(); this.renderTable(); this.renderSummary(); this.renderCharts();
+                if (window.lucide) lucide.createIcons();
+                const updateEl = document.getElementById('last-update-time');
+                if (updateEl) updateEl.innerText = `Update: ${new Date().toLocaleTimeString()}`;
+            } catch (err) { console.error("Render Error:", err); }
+        },
+        syncTabs() { document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === state.filters.tab)); },
+        populateSelects() {
+            const countries = [...new Set(db.map(d => d.country))].filter(Boolean).sort();
+            const statuses = [...new Set(db.map(d => d.updateType))].filter(Boolean);
+            const employers = [...new Set(db.map(d => String(d.employer || "").split(' ')[0]))].filter(Boolean).sort();
+            document.getElementById('filter-country').innerHTML = '<option value="">All Countries</option>' + countries.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('filter-employer').innerHTML = '<option value="">All Employers</option>' + employers.map(e => `<option value="${e}">${e}</option>`).join('');
+            document.getElementById('filter-status').innerHTML = '<option value="">All Status</option>' + statuses.map(s => `<option value="${s}">${s}</option>`).join('');
+        },
+        renderKPIs() {
+            const ad = db.filter(d => state.filters.includeHidden || !d.isHidden);
+            document.getElementById('kpi-total').innerText = ad.length;
+            document.getElementById('kpi-participation').innerText = ad.filter(d => d.participation === 'O').length;
+            document.getElementById('kpi-award').innerText = ad.filter(d => d.award === 'O').length;
+            document.getElementById('kpi-new').innerText = ad.filter(d => d.updateType === 'NEW').length;
+            document.getElementById('kpi-updated').innerText = ad.filter(d => d.updateType === 'UPDATED').length;
+            document.getElementById('kpi-risk').innerText = ad.filter(d => d.dDay !== null && d.dDay >= 0 && d.dDay <= 7).length;
+        },
+        renderTable() {
+            const { search, country, status, deadline, tab, includeHidden } = state.filters;
+            const { field, order } = state.sort;
+            const tb = document.getElementById('table-body');
+            const fl = db.filter(d => {
+                if (!includeHidden && d.isHidden) return false;
+                const q = (search || "").toLowerCase();
+                const matchSearch = !search || d.projectName.toLowerCase().includes(q) || d.employer.toLowerCase().includes(q) || d.code.toLowerCase().includes(q);
+                const matchCountry = !country || d.country === country;
+                const matchStatus = !status || d.updateType === status;
+                const matchDeadline = !deadline || (d.dDay !== null && d.dDay <= parseInt(deadline));
+                const matchEmployer = !state.filters.employer || d.employer.toLowerCase().includes(state.filters.employer.toLowerCase());
+                let matchTab = true;
+                if (tab === 'new-only') matchTab = d.updateType === 'NEW';
+                if (tab === 'updated-only') matchTab = d.updateType === 'UPDATED';
+                if (tab === 'deadline-risk') matchTab = (d.dDay !== null && d.dDay >= 0 && d.dDay <= 7);
+                if (tab === 'participation-o') matchTab = d.participation === 'O';
+                if (tab === 'award-o') matchTab = d.award === 'O';
+                return matchSearch && matchCountry && matchStatus && matchDeadline && matchEmployer && matchTab;
+            });
+            fl.sort((a,b) => {
+                let vA, vB;
+                if (field === 'deadline') { vA = (a.dDay !== null) ? a.dDay : (order === 'asc' ? 99999 : -99999); vB = (b.dDay !== null) ? b.dDay : (order === 'asc' ? 99999 : -99999); }
+                else if (['projectName','employer','code','status'].includes(field)) { vA = String(a[field]||"").toLowerCase(); vB = String(b[field]||"").toLowerCase(); }
+                else { vA = a[field]||0; vB = b[field]||0; }
+                return vA < vB ? (order === 'asc' ? -1 : 1) : (vA > vB ? (order === 'asc' ? 1 : -1) : 0);
+            });
+            tb.innerHTML = fl.length ? '' : '<tr><td colspan="10" class="empty-msg">No results.</td></tr>';
+            document.querySelectorAll('#main-table th').forEach(th => {
+                const f = th.dataset.sort; let icon = th.querySelector('.sort-icon'); if (icon) icon.remove();
+                if (f === field) { const s = document.createElement('span'); s.className = 'sort-icon'; s.innerText = order === 'asc' ? ' ↑' : ' ↓'; s.style.color = 'var(--accent-primary)'; th.appendChild(s); }
+                
+                // Resizer Ensure
+                if (!th.querySelector('.resizer')) {
+                    const r = document.createElement('div'); r.className = 'resizer';
+                    th.appendChild(r); this.initResizable(th);
+                }
+            });
+            fl.forEach(d => {
+                const tr = document.createElement('tr'); if (d.isHidden) tr.classList.add('row-cancelled');
+                let dDT = '-', dDC = ''; if (d.dDay !== null) { if (d.dDay < 0) { dDT = `D+${Math.abs(d.dDay)}`; dDC = 'dd-gray'; } else if (d.dDay === 0) { dDT = 'D-Day'; dDC = 'dd-red'; } else { dDT = `D-${d.dDay}`; dDC = d.dDay <= 3 ? 'dd-red' : (d.dDay <= 7 ? 'dd-orange' : ''); } }
+                const ut = d.updateType || 'UNCHANGED';
+                tr.innerHTML = `
+                    <td><div class="cell-content"><span class="badge badge-${ut.toLowerCase()}">${ut === 'UPDATED' ? 'UPD' : (ut === 'UNCHANGED' ? 'SAME' : (ut === 'CLOSED' ? 'CLS' : 'NEW'))}</span></div></td>
+                    <td><div class="cell-content code-text">${d.code||'-'}${d.workType ? `<span class="work-badge work-${d.workType.toLowerCase()}">${d.workType}</span>` : ''}</div></td>
+                    <td><div class="cell-content projectName-wrap" title="${d.projectName}">${d.projectName}</div></td>
+                    <td><div class="cell-content employer-wrap">${d.employer}</div></td>
+                    <td class="align-center"><div class="cell-content part-${d.participation === 'O' ? 'o' : 'x'}">${d.participation || 'X'}</div></td>
+                    <td class="align-center"><div class="cell-content part-${d.award === 'O' ? 'o' : 'x'}">${d.award || 'X'}</div></td>
+                    <td><div class="cell-content deadline-wrap"><div class="${dDC}">${dDT}</div><small>${d.deadlineRaw||'-'}</small></div></td>
+                    <td><div class="cell-content jv-wrap">${d.jv||'-'}</div></td>
+                    <td><div class="cell-content krw-text">${d.krw||'-'}</div></td>
+                    <td><div class="cell-content action-btn"><button class="btn-icon sm info-btn"><i data-lucide="info"></i></button></div></td>
+                `;
+                tr.querySelector('.info-btn').onclick = () => this.showDetail(d);
+                tb.appendChild(tr);
+            });
+            lucide.createIcons();
+        },
+        showDetail(d) {
+            state.selectedId = d.id; document.getElementById('side-panel').classList.add('active');
+            document.getElementById('p-badge').innerText = d.code; document.getElementById('p-project-name').innerText = d.projectName;
+            const ml = (id, its) => document.getElementById(id).innerHTML = its.map(i => `<div class="info-cell"><span>${i.l}</span><span>${i.v || '-'}</span></div>`).join('');
+            ml('p-essential', [{l:'Country', v:d.country}, {l:'Employer', v:d.employer}, {l:'Participation', v:d.participation}, {l:'Award', v:d.award}]);
+            ml('p-budget', [{l:'Budget', v:d.budget}, {l:'KRW', v:d.krw}, {l:'Evaluation', v:d.evaluation}, {l:'JV', v:d.jv}]);
+            ml('p-dates', [{l:'Notice', v:d.noticeDate}, {l:'Deadline', v:d.deadlineRaw}, {l:'D-Day', v: d.dDay !== null ? (d.dDay < 0 ? `D+${Math.abs(d.dDay)}` : (d.dDay === 0 ? 'D-Day' : `D-${d.dDay}`)) : '-'}]);
+            document.getElementById('p-current-status').innerText = d.currentStatus || 'N/A';
+            const ds = document.getElementById('diff-section'); if (d.updateType === 'UPDATED' && d.changedFields.length > 0) { ds.classList.remove('hidden'); document.getElementById('diff-list').innerHTML = d.changedFields.map(f => `<div class="diff-item"><span style="font-weight:700">${f.field}</span><div style="display:flex;align-items:center;gap:8px"><span class="old-val">${f.old}</span><i data-lucide="arrow-right" style="width:14px"></i><span class="new-val">${f.new}</span></div></div>`).join(''); lucide.createIcons(); } else ds.classList.add('hidden');
+            const lk = document.getElementById('tender-link'); if (d.tenderLink) { lk.href = d.tenderLink; lk.classList.remove('hidden'); } else lk.classList.add('hidden');
+        },
+        renderSummary() {
+            const ad = db.filter(d => state.filters.includeHidden || !d.isHidden);
+            const cs = { n: ad.filter(d => d.updateType === 'NEW').length, u: ad.filter(d => d.updateType === 'UPDATED').length, r: ad.filter(d => d.dDay !== null && d.dDay >= 0 && d.dDay <= 7).length, p: ad.filter(d => d.participation === 'O').length };
+            document.getElementById('summary-sentence').innerText = ad.length ? `[요약] 신규 ${cs.n} • 변경 ${cs.u} • 마감임박 ${cs.r} • 실참여 ${cs.p}` : "업로드 대기 중...";
+        },
+        renderCharts() {
+            const ad = db.filter(d => state.filters.includeHidden || !d.isHidden);
+            if (!ad.length) return;
+            const tx = state.theme === 'dark' ? '#94a3b8' : '#64748b';
+            this.drawPie('chart-status', ['NEW', 'UPD', 'SAME'], [ad.filter(d => d.updateType === 'NEW').length, ad.filter(d => d.updateType === 'UPDATED').length, ad.filter(d => d.updateType === 'UNCHANGED').length], ['#10b981', '#f59e0b', '#64748b'], tx);
+            this.drawPie('chart-award', ['Award', 'Part', 'Others'], [ad.filter(d => d.award === 'O').length, ad.filter(d => d.participation === 'O').length, ad.length], ['#10b981', '#3b82f6', '#334155'], tx);
+            const cm = {}; ad.forEach(d => cm[d.country] = (cm[d.country] || 0) + 1);
+            const tc = Object.entries(cm).sort((a,b) => b[1]-a[1]).slice(0, 5);
+            this.drawBar('chart-country', tc.map(c => c[0]), tc.map(c => c[1]), '#6366f1', tx);
+        },
+        drawPie(id, ls, d, cs, tc) {
+            const ctx = document.getElementById(id).getContext('2d'); if (this[id]) this[id].destroy();
+            this[id] = new Chart(ctx, { type: 'doughnut', data: { labels: ls, datasets: [{ data: d, backgroundColor: cs, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: tc, font: { size: 10 } } } } } });
+        },
+        drawBar(id, ls, d, c, tc) {
+            const ctx = document.getElementById(id).getContext('2d'); if (this[id]) this[id].destroy();
+            this[id] = new Chart(ctx, { type: 'bar', data: { labels: ls, datasets: [{ data: d, backgroundColor: c, borderRadius: 5 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: tc } }, x: { ticks: { color: tc } } }, plugins: { legend: { display:false } } } });
+        },
+        copyToClipboard() {
+            const isDetailOpen = document.getElementById('side-panel').classList.contains('active');
+            if (isDetailOpen && state.selectedId) {
+                const d = db.find(item => item.id === state.selectedId);
+                if (d) {
+                    const text = `[사업상세] ${d.projectName}\n- 발주처: ${d.employer}\n- 현재상태: ${d.currentStatus || '-'}\n- 마감일: ${d.deadlineRaw || '-'}\n- 예산: ${d.krw || '-'}\n- JV구성: ${d.jv || '-'}`;
+                    navigator.clipboard.writeText(text).then(() => alert("사업 상세 정보가 복사되었습니다."));
+                    return;
+                }
+            }
+            navigator.clipboard.writeText(document.getElementById('summary-sentence').innerText).then(() => alert("보고서 요약이 복사되었습니다."));
+        },
+        export() {
+            const sd = db.map(d => { const { id, deadlineObj, dDay, updateType, changedFields, ...r } = d; return r; });
+            const ws = XLSX.utils.json_to_sheet(sd); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "TenderData");
+            XLSX.writeFile(wb, `Tender_Intelligence_${new Date().toISOString().slice(0,10)}.xlsx`);
+        },
+        backupJSON() {
+            const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Tender_DB_Backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        },
+        restoreJSON(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (Array.isArray(data)) {
+                        if (confirm(`백업 파일에서 ${data.length}개의 항목을 불러오시겠습니까? 기존 데이터는 유지되며 중복은 자동으로 처리됩니다.`)) {
+                            db = Comparator.diff(db, data);
+                            localStorage.setItem('tender_db_v3', JSON.stringify(db));
+                            this.render();
+                        }
+                    }
+                } catch (err) { alert("파일 처리 오류"); }
+            };
+            reader.readAsText(file);
+        },
+        initResizable(th) {
+            const r = th.querySelector('.resizer'); let sX, sW;
+            r.addEventListener('mousedown', (e) => {
+                e.stopPropagation(); sX = e.pageX; sW = th.offsetWidth; th.classList.add('resizing');
+                const oMM = (e) => { const w = sW + (e.pageX - sX); if (w > 50) { th.style.width = w + 'px'; th.style.minWidth = w + 'px'; } };
+                const oMU = () => { th.classList.remove('resizing'); document.removeEventListener('mousemove', oMM); document.removeEventListener('mouseup', oMU); };
+                document.addEventListener('mousemove', oMM); document.addEventListener('mouseup', oMU);
+            });
+        }
+    };
+    return { init: () => { UI.init(); setTimeout(() => { if(window.lucide) lucide.createIcons(); }, 150); } };
+})();
+App.init();
+    </script>
+</body>
+</html>

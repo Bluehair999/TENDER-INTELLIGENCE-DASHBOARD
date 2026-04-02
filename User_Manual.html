@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tender Intelligence Dashboard v13.1 - User Manual</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg-main: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 2rem 1rem;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .header-content h1 {
+            font-size: 2.2rem; font-weight: 800;
+            background: linear-gradient(135deg, #818cf8, #6366f1);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .version-badge {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--primary);
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 0.9rem; font-weight: 600; border: 1px solid var(--primary);
+        }
+
+        .container {
+            max-width: 1000px; margin: 3rem auto; padding: 0 1.5rem;
+            display: grid; grid-template-columns: 280px 1fr; gap: 3rem;
+        }
+
+        aside { position: sticky; top: 120px; height: fit-content; }
+        .nav-list { list-style: none; }
+        .nav-item { margin-bottom: 0.5rem; }
+        .nav-link {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 15px; border-radius: 10px;
+            color: var(--text-muted); text-decoration: none;
+            transition: 0.3s; font-weight: 500;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: rgba(99, 102, 241, 0.1); color: var(--text-main);
+        }
+        .nav-link i { width: 18px; }
+
+        main section { margin-bottom: 5rem; scroll-margin-top: 140px; }
+        h2 { 
+            font-size: 1.8rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 12px;
+            border-bottom: 2px solid var(--border); padding-bottom: 10px;
+        }
+        h2 i { color: var(--primary); }
+
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 2rem; margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+        .feature-item {
+            background: rgba(255,255,255,0.03); padding: 1.25rem; border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        .feature-item h4 { color: var(--primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+
+        .risk-box { border-left: 4px solid var(--accent-red); background: rgba(239, 68, 68, 0.05); padding: 1rem; border-radius: 4px 12px 12px 4px; }
+        .past-box { border-left: 4px solid var(--text-muted); background: rgba(148, 163, 184, 0.05); padding: 1rem; border-radius: 4px 12px 12px 4px; }
+
+        ul { list-style-position: inside; margin: 1rem 0; color: var(--text-muted); }
+        li { margin-bottom: 8px; }
+        b { color: var(--text-main); font-weight: 600; }
+
+        @keyframes blink {
+            50% { opacity: 0.5; color: #ef4444; }
+        }
+        .blink-demo { color: #f87171; font-weight: 800; animation: blink 1.5s infinite; }
+
+        @media (max-width: 850px) {
+            .container { grid-template-columns: 1fr; }
+            aside { display: none; }
+        }
+
+        footer {
+            text-align: center; padding: 4rem 2rem; border-top: 1px solid var(--border);
+            color: var(--text-muted); font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <h1>Tender Intelligence Manual</h1>
+            <span class="version-badge">Version 13.1 Stable</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <aside>
+            <nav>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="#intro" class="nav-link active"><i data-lucide="info"></i>Overview</a></li>
+                    <li class="nav-item"><a href="#dashboard" class="nav-link"><i data-lucide="layout"></i>Dashboard</a></li>
+                    <li class="nav-item"><a href="#calendar" class="nav-link"><i data-lucide="calendar"></i>Calendar</a></li>
+                    <li class="nav-item"><a href="#list" class="nav-link"><i data-lucide="list"></i>Project List</a></li>
+                    <li class="nav-item"><a href="#data" class="nav-link"><i data-lucide="database"></i>Data Mgmt</a></li>
+                    <li class="nav-item"><a href="#mobile" class="nav-link"><i data-lucide="smartphone"></i>Mobile UI</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main>
+            <section id="intro">
+                <h2><i data-lucide="zap"></i> Overview</h2>
+                <div class="card">
+                    <p>본 대시보드는 엑셀 입찰 데이터를 지능적으로 시각화하고, 복잡한 마감 일정을 한눈에 관리할 수 있도록 설계된 <b>올인원(All-in-One) 통합 솔루션</b>입니다.</p>
+                    <ul>
+                        <li><b>단일 파일 구조:</b> HTML 하나에 디자인, 기능, 데이터가 모두 내장되어 별도 서버가 필요 없습니다.</li>
+                        <li><b>지능형 매칭:</b> 입력된 데이터를 바탕으로 마감일(D-Day)을 자동 계산하고 시각화합니다.</li>
+                        <li><b>공유 최적화:</b> 단일 파일 형태로 카톡, 이메일, 클라우드를 통해 간편하게 공유할 수 있습니다.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="dashboard">
+                <h2><i data-lucide="bar-chart-3"></i> Dashboard & KPIs</h2>
+                <div class="card">
+                    <p>시스템 구동 즉시 대시보드 상단 상시 요약 지표가 노출됩니다.</p>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <h4><i data-lucide="activity"></i> 실시간 상태 요약</h4>
+                            <p>전체 건수, 참여(O) 건수, 낙찰(Winner) 건수를 실시간으로 요약 및 필터링합니다.</p>
+                        </div>
+                        <div class="feature-item">
+                            <h4><i data-lucide="trending-up"></i> 지능형 차트</h4>
+                            <p>상태별 분포, 수집 통계, 국가별 분석 차트를 통해 입찰 전략을 수립할 수 있습니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="calendar">
+                <h2><i data-lucide="calendar-range"></i> Smart Calendar</h2>
+                <div class="card">
+                    <p>입찰 관리의 핵심인 마감일(Deadline)을 입체적으로 관리합니다.</p>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <h4><i data-lucide="monitor"></i> 상시 미니 달력</h4>
+                            <p>우측 대시보드 영역 상단에 미니 달력이 상시 노출되어 오늘과 이번 달 일정을 놓치지 않습니다.</p>
+                        </div>
+                        <div class="feature-item">
+                            <h4><i data-lucide="expand"></i> 상세 달력 팝업</h4>
+                            <p>날짜별 사업 코드가 매핑되며, 마우스 오버 시 상세 정보를 중앙에서 확인할 수 있습니다.</p>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <div class="risk-box">
+                            <b>🚨 마감 임박 경고 (D-7):</b> 기간 내 사업은 빨간색으로 <span class="blink-demo">깜빡이며(Blinking)</span> 강력한 주의를 환기합니다.
+                        </div>
+                        <div class="past-box" style="margin-top:10px;">
+                            <b>🌑 지난 일정 처리:</b> 마감이 도래한 과거 사업은 자동으로 <b>회색(Gray)</b> 처리되어 현재 일정과 명확히 구분됩니다.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="list">
+                <h2><i data-lucide="table"></i> Project List & Detail</h2>
+                <div class="card">
+                    <p>강력한 데이터 테두리 내에서 상세한 사업 정보를 관리합니다.</p>
+                    <ul>
+                        <li><b>인터랙티브 리사이징:</b> 테이블 열 너비를 마우스 드래그로 자유롭게 조절하여 최적의 뷰를 구성할 수 있습니다.</li>
+                        <li><b>스마트 검색/필터:</b> 국가, 발주처, 상태별 다중 조건 검색을 지원합니다.</li>
+                        <li><b>보고용 요약 복사:</b> 상세 패널에서 <b>'Copy for Report'</b>를 클릭하면 보고서용 정제된 텍스트가 즉시 복사됩니다.</li>
+                        <li><b>변경 이력 추적:</b> 데이터 갱신 시 변경된 정보가 있을 경우 이력을 즉시 표시합니다.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="data">
+                <h2><i data-lucide="server"></i> Data Management</h2>
+                <div class="card">
+                    <p>데이터의 연속성과 안전한 관리를 위한 기능을 제공합니다.</p>
+                    <ul>
+                        <li><b>엑셀 업로드:</b> 상단 버튼을 통해 새로운 입찰 리스트 엑셀 파일을 드래그하여 즉시 업데이트합니다.</li>
+                        <li><b>JSON 백업/복원:</b> 현재의 작업 상태를 JSON 파일로 내보내거나 불러와 데이터 손실을 방지합니다.</li>
+                        <li><b>임베디드 업데이트:</b> 전문가용 `EMBEDDED_DB` 수정을 통해 초기 로드 데이터를 영구히 고정할 수 있습니다.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="mobile">
+                <h2><i data-lucide="smartphone"></i> Mobile Optimization</h2>
+                <div class="card">
+                    <p>외근 중에도 스마트폰으로 모든 기능을 동일하게 활용할 수 있습니다.</p>
+                    <ul>
+                        <li><b>반응형 그리드:</b> 모바일 화면 크기에 맞춰 KPI와 레이아웃이 자동 최적화됩니다.</li>
+                        <li><b>풀스크린 상세뷰:</b> 좁은 화면에서도 텍스트를 읽기 편하도록 상세 패널이 전체 화면으로 열립니다.</li>
+                        <li><b>터치 인터페이스:</b> 손으로 넘기기 편한 탭 구조와 버튼 크기를 적용했습니다.</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <p>Copyright &copy; 2026 Tender Intelligence Dashboard by 철도4부</p>
+        <p style="margin-top: 10px;">Build version: v13.1 (Stable)</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Simple scroll spy logic
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.onscroll = () => {
+            let current = "";
+            sections.forEach((section) => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute("id");
+                }
+            });
+
+            navLinks.forEach((link) => {
+                link.classList.remove("active");
+                if (link.getAttribute("href").includes(current)) {
+                    link.classList.add("active");
+                }
+            });
+        };
+    </script>
+</body>
+</html>

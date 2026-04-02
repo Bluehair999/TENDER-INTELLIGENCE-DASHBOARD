@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tender Intelligence Dashboard (Pro v3)</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body class="light-theme">
+    <div class="app-wrapper">
+        <!-- Header Section -->
+        <header class="main-header glass">
+            <div class="header-left">
+                <i data-lucide="shield-check" class="brand-icon"></i>
+                <h1 class="brand-title">TENDER <span>INTELLIGENCE</span> DASHBOARD <small class="dept-tag">by 철도4부</small></h1>
+            </div>
+            <div class="header-right">
+                <div id="last-update-time" class="update-ts">Update: -</div>
+                <div class="upload-controls">
+                    <button id="export-excel" class="btn-icon" title="Excel 내보내기"><i data-lucide="download"></i></button>
+                    <button id="backup-db" class="btn-icon" title="데이터 백업 (JSON)"><i data-lucide="file-json"></i></button>
+                    <button id="restore-db" class="btn-icon" title="데이터 복합 (JSON)"><i data-lucide="upload"></i></button>
+                    <button id="reset-db" class="btn-icon danger" title="데이터 초기화"><i data-lucide="trash-2"></i></button>
+                    <button id="theme-toggle" class="btn-icon theme-btn" title="테마 전환"><i data-lucide="sun" class="light-icon"></i><i data-lucide="moon" class="dark-icon"></i></button>
+                    <input type="file" id="json-upload" hidden accept=".json">
+                    
+                    <div class="upload-wrapper">
+                        <div id="drop-zone" class="drop-zone">
+                            <i data-lucide="mouse-pointer-2"></i>
+                            <span>Drop here</span>
+                        </div>
+                        <div id="upload-btn" class="upload-btn">
+                            <i data-lucide="upload-cloud"></i>
+                            <span>Excel 업로드</span>
+                            <input type="file" id="file-input" hidden accept=".xlsx, .xls">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- KPI Cards Section -->
+        <section class="kpi-section">
+            <div class="kpi-grid">
+                <div class="kpi-card grey" data-filter="all">
+                    <div class="kpi-value" id="kpi-total">0</div>
+                    <div class="kpi-label">Total Tenders</div>
+                </div>
+                <div class="kpi-card blue" data-filter="participation-o">
+                    <div class="kpi-value" id="kpi-participation">0</div>
+                    <div class="kpi-label">Participation (O)</div>
+                </div>
+                <div class="kpi-card green" data-filter="award-o">
+                    <div class="kpi-value" id="kpi-award">0</div>
+                    <div class="kpi-label">Award (Winner)</div>
+                </div>
+                <div class="kpi-card dark-green" data-filter="new-only">
+                    <div class="kpi-value" id="kpi-new">0</div>
+                    <div class="kpi-label">New Added</div>
+                </div>
+                <div class="kpi-card orange" data-filter="updated-only">
+                    <div class="kpi-value" id="kpi-updated">0</div>
+                    <div class="kpi-label">Updated Info</div>
+                </div>
+                <div class="kpi-card red" data-filter="deadline-risk">
+                    <div class="kpi-value" id="kpi-risk">0</div>
+                    <div class="kpi-label">Deadline Risk (D-7)</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filter Bar -->
+        <section class="filter-section glass">
+            <div class="filter-bar">
+                <div class="filter-group main-search">
+                    <i data-lucide="search" class="f-icon"></i>
+                    <input type="text" id="global-search" placeholder="Search Project or Employer...">
+                </div>
+                <div class="filter-group selects">
+                    <select id="filter-country" title="국가별 필터"><option value="">All Countries</option></select>
+                    <select id="filter-employer" title="발주처별 필터"><option value="">All Employers</option></select>
+                    <select id="filter-status" title="상태별 필터"><option value="">All Status</option></select>
+                    <select id="filter-deadline" title="마감일별 필터"><option value="">All Deadline</option><option value="7">D-7</option><option value="30">D-30</option></select>
+                </div>
+                <div class="filter-group toggle-group">
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-hidden" title="숨김 및 취소선 항목 포함">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="toggle-label text-sm">Include Cancelled</span>
+                </div>
+                <button id="reset-filters" class="btn-text">Reset Filters</button>
+            </div>
+            <div id="active-tags" class="tag-area">
+                <!-- Tags here -->
+            </div>
+        </section>
+
+        <!-- Middle Section: Table & Dashboard -->
+        <section class="main-content-layout">
+            <div class="table-container-outer glass">
+                <div class="table-header">
+                    <div class="tabs" id="view-tabs">
+                        <button class="tab-btn" data-tab="updated-only">Updated</button>
+                        <button class="tab-btn" data-tab="new-only">New</button>
+                        <button class="tab-btn active" data-tab="all">All List</button>
+                        <button class="tab-btn" data-tab="deadline-risk">Deadline Risk</button>
+                    </div>
+                    <div id="summary-sentence" class="summary-text">Waiting for data...</div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="main-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="updateType">Status</th>
+                                <th data-sort="code">Code</th>
+                                <th data-sort="projectName">Project Name</th>
+                                <th data-sort="employer">Employer</th>
+                                <th data-sort="participation">Part.</th>
+                                <th data-sort="award">Award</th>
+                                <th data-sort="deadline">Deadline</th>
+                                <th data-sort="jv">JV / Consor.</th>
+                                <th data-sort="krw">Budget (KRW)</th>
+                                <th>Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <tr><td colspan="10" class="empty-msg">Waiting for data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="dashboard-side-layout">
+                <div class="chart-card glass">
+                    <h3>Status Distribution</h3>
+                    <div class="canvas-wrap"><canvas id="chart-status"></canvas></div>
+                </div>
+                <div class="chart-card glass">
+                    <h3>Award & Part. Stat</h3>
+                    <div class="canvas-wrap"><canvas id="chart-award"></canvas></div>
+                </div>
+                <div class="chart-card glass">
+                    <h3>Top Countries</h3>
+                    <div class="canvas-wrap"><canvas id="chart-country"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Side Panel -->
+        <div id="side-panel" class="side-panel shadow">
+            <div class="panel-content">
+                <header class="panel-header">
+                    <div class="p-title-area">
+                        <span id="p-badge" class="badge">CODE</span>
+                        <h2 id="p-project-name">Project Title</h2>
+                    </div>
+                    <button class="close-panel"><i data-lucide="x"></i></button>
+                </header>
+                <div class="panel-body">
+                    <div class="info-group">
+                        <label>Essential Info</label>
+                        <div class="info-listing" id="p-essential"></div>
+                    </div>
+                    <div class="info-group">
+                        <label>Budget & KRW</label>
+                        <div class="info-listing" id="p-budget"></div>
+                    </div>
+                    <div class="info-group">
+                        <label>Deadline & Dates</label>
+                        <div class="info-listing" id="p-dates"></div>
+                    </div>
+                    <div class="info-group full">
+                        <label>Current Status</label>
+                        <div id="p-current-status" class="long-text"></div>
+                    </div>
+                    
+                    <div id="diff-section" class="diff-section glass hidden">
+                        <label><i data-lucide="history"></i> Information Changes (Diff)</label>
+                        <div id="diff-list" class="diff-list"></div>
+                    </div>
+
+                    <div class="panel-footer">
+                        <button id="copy-summary" class="btn-secondary"><i data-lucide="copy"></i> Copy for Report</button>
+                        <a id="tender-link" href="#" target="_blank" class="btn-primary">View Tender Detail</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Spinner -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+</html>
