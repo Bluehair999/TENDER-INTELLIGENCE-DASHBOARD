@@ -749,6 +749,7 @@ const App = (() => {
     const dbRef = firebase.database().ref('tender_database');
 
     const EMBEDDED_DB = [];
+    let db = [];
     let state = {
         filters: { search: '', country: '', status: '', deadline: '', employer: '', tab: 'all', includeHidden: false },
         sort: { field: 'deadline', order: 'desc' },
