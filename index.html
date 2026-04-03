@@ -14,6 +14,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- SheetJS -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Firebase SDK (v8-compat for simple HTML integration) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <style>
 /* --- Inline style.css --- */
@@ -727,6 +730,24 @@ tr.row-cancelled .code-text { text-decoration: line-through; }
     <script>
 /* --- Inline app.js --- */
 const App = (() => {
+    // --- Firebase Initialization ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCeH4y8IWOqEGKy3v8XjwMaMnq3gG8UwH0",
+      authDomain: "tender-intelligence-dashboard.firebaseapp.com",
+      projectId: "tender-intelligence-dashboard",
+      storageBucket: "tender-intelligence-dashboard.firebasestorage.app",
+      messagingSenderId: "225289884547",
+      appId: "1:225289884547:web:9ab74cba02aa64496e1cb6",
+      measurementId: "G-XBGS8NY718",
+      databaseURL: "https://tender-intelligence-dashboard-default-rtdb.firebaseio.com"
+    };
+    
+    // Initialize Firebase if not already initialized
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const dbRef = firebase.database().ref('tender_database');
+
     const EMBEDDED_DB = [];
     let state = {
         filters: { search: '', country: '', status: '', deadline: '', employer: '', tab: 'all', includeHidden: false },
@@ -843,9 +864,11 @@ const App = (() => {
             if (confirm("해당 시점으로 데이터를 복구하시겠습니까? 현재 데이터는 히스토리에 백업됩니다.")) {
                 Helpers.saveToHistory('Before Rollback');
                 db = JSON.parse(state.history[index].data);
-                localStorage.setItem('tender_db_v3', JSON.stringify(db));
-                UI.render();
-                alert("복구 완료");
+                dbRef.set(db).then(() => {
+                    localStorage.setItem('tender_db_v3', JSON.stringify(db));
+                    UI.render();
+                    alert("복구 완료");
+                });
             }
         }
     };
@@ -989,25 +1012,31 @@ const App = (() => {
             if (window.lucide) lucide.createIcons(); 
         },
         async loadSharedData() {
-            try {
-                const response = await fetch('db.json');
-                if (response.ok) {
-                    const sharedData = await response.json();
-                    if (Array.isArray(sharedData) && sharedData.length > 0) {
-                        // Always prioritize server data (Shared View Force)
+            return new Promise((resolve) => {
+                dbRef.on('value', (snapshot) => {
+                    const sharedData = snapshot.val();
+                    if (sharedData && Array.isArray(sharedData)) {
                         db = sharedData;
+                        // Synchronize to localStorage as local fallback/cache
                         localStorage.setItem('tender_db_v3', JSON.stringify(db));
-                        console.log("Forced sync: Loaded latest data from server db.json");
+                        console.log("Real-time Sync: Loaded latest data from Firebase");
+                        this.render(); // Re-render whenever Firebase data changes
+                    } else if (!db || db.length === 0) {
+                        // Fallback to local storage if Firebase is empty initially
+                        const local = localStorage.getItem('tender_db_v3');
+                        if (local) db = JSON.parse(local);
                     }
-                }
-            } catch (e) {
-                console.warn("Shared data fetch failed, using local fallback.", e);
-            }
+                    resolve();
+                }, (error) => {
+                    console.error("Firebase Sync Error:", error);
+                    resolve();
+                });
+            });
         },
         syncWithServer() {
+            // With Real-time DB, this is technically redundant but good for manual refresh
             this.loadSharedData().then(() => {
-                this.render();
-                alert("서버 데이터와 강제 동기화되었습니다.");
+                alert("서버와 실시간 연결이 활성화되었습니다.");
             });
         },
         migrate() {
@@ -1101,9 +1130,12 @@ const App = (() => {
                 if (!Helpers.checkAuth()) return;
                 if(confirm("모든 데이터를 초기화하시겠습니까? 현재 상태는 히스토리에 저장됩니다.")) { 
                     Helpers.saveToHistory('Database Reset');
-                    localStorage.removeItem('tender_db_v3'); 
                     db = []; 
-                    this.render(); 
+                    dbRef.set(db).then(() => {
+                        localStorage.removeItem('tender_db_v3'); 
+                        this.render(); 
+                        alert("데이터베이스가 초기화되었습니다.");
+                    });
                 } 
             };
             document.getElementById('show-history').onclick = () => {
@@ -1393,8 +1425,11 @@ const App = (() => {
                     if (Array.isArray(data)) {
                         if (confirm(`백업 파일에서 ${data.length}개의 항목을 불러오시겠습니까? 기존 데이터는 유지되며 중복은 자동으로 처리됩니다.`)) {
                             db = Comparator.diff(db, data);
-                            localStorage.setItem('tender_db_v3', JSON.stringify(db));
-                            this.render();
+                            dbRef.set(db).then(() => {
+                                localStorage.setItem('tender_db_v3', JSON.stringify(db));
+                                this.render();
+                                alert("데이터 복원이 완료되었습니다.");
+                            });
                         }
                     }
                 } catch (err) { alert("파일 처리 오류"); }
