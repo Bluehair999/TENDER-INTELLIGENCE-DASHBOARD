@@ -1,0 +1,28 @@
+﻿[
+  {
+     id: pl-wt25-3,
+    code: PL-WT25-3,
+    workType: P,
+    no: 1,
+    projectName: 바바르샤바 트램 정비기지 설계,
+    employer: Tramwaje Warszawskie,
+    country: Poland,
+    noticeDate: 2025.07.09,
+    deadlineRaw: 2025.09.05,
+    deadlineObj: 2025-09-05T00:00:00.000Z,
+    dDay: -209,
+    participation: O,
+    award: O,
+    budget: PLN 17,592,000,
+    krw: 71.2 억원,
+    currentStatus: Contract scheduled for March 6.,
+    jv: DOHWA + DOHWA POLSKA,
+    evaluation: Price 95% Personnel 5%,
+    tenderLink: ,
+ isHidden: true,
+ updateType: CLOSED,
+ changedFields: [],
+ lastFound: 2026-04-03T01:07:03.852Z,
+ foundInCurrentSync: true
+ }
+]
