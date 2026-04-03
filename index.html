@@ -2023,7 +2023,7 @@ const App = (() => {
             state.history.unshift(snapshot);
             if (state.history.length > 10) state.history.pop();
             localStorage.setItem('tender_db_history', JSON.stringify(state.history));
-            this.renderHistory();
+            Helpers.renderHistory();
         },
 
         renderHistory() {
@@ -2039,15 +2039,15 @@ const App = (() => {
                         <span class="hist-time">${h.timestamp}</span>
                         <span class="hist-tag">[${h.type}] Record</span>
                     </div>
-                    <button class="btn-restore" onclick="App.restoreFromHistory(${i})">Restore</button>
+                    <button class="btn-restore" onclick="window.App.restoreFromHistory(${i})">Restore</button>
                 </div>
             `).join('');
         },
 
         restoreFromHistory(index) {
-            if (!this.checkAuth()) return;
+            if (!Helpers.checkAuth()) return;
             if (confirm("해당 시점으로 데이터를 복구하시겠습니까? 현재 데이터는 히스토리에 백업됩니다.")) {
-                this.saveToHistory('Before Rollback');
+                Helpers.saveToHistory('Before Rollback');
                 db = JSON.parse(state.history[index].data);
                 localStorage.setItem('tender_db_v3', JSON.stringify(db));
                 UI.render();
@@ -2187,7 +2187,32 @@ const App = (() => {
     };
 
     const UI = {
-        init() { this.migrate(); this.bindEvents(); this.render(); if (window.lucide) lucide.createIcons(); },
+        async init() { 
+            await this.loadSharedData();
+            this.migrate(); 
+            this.bindEvents(); 
+            this.render(); 
+            if (window.lucide) lucide.createIcons(); 
+        },
+        async loadSharedData() {
+            try {
+                const response = await fetch('db.json');
+                if (response.ok) {
+                    const sharedData = await response.json();
+                    if (Array.isArray(sharedData) && sharedData.length > 0) {
+                        // Priority: Local Storage (User Edits) > Server Data (Shared)
+                        const localData = localStorage.getItem('tender_db_v3');
+                        if (!localData) {
+                            db = sharedData;
+                            localStorage.setItem('tender_db_v3', JSON.stringify(db));
+                            console.log("Loaded data from db.json");
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("db.json not found or could not be loaded, using embedded/local data.");
+            }
+        },
         migrate() {
             let changed = false;
             db = db.map(d => {
@@ -2599,6 +2624,7 @@ const App = (() => {
         login: () => Helpers.checkAuth()
     };
 })();
+window.App = App;
 App.init();
     </script>
 </body>
