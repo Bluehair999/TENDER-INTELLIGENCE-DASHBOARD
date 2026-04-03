@@ -865,7 +865,8 @@ const App = (() => {
             if (confirm("해당 시점으로 데이터를 복구하시겠습니까? 현재 데이터는 히스토리에 백업됩니다.")) {
                 Helpers.saveToHistory('Before Rollback');
                 db = JSON.parse(state.history[index].data);
-                dbRef.set(db).then(() => {
+                const sanitizedDB = JSON.parse(JSON.stringify(db));
+                dbRef.set(sanitizedDB).then(() => {
                     localStorage.setItem('tender_db_v3', JSON.stringify(db));
                     UI.render();
                     alert("복구 완료");
@@ -961,7 +962,7 @@ const App = (() => {
                         krw: Helpers.calculateKRW(get(["Final Budget", "Estimated Budget", "Budget"]), get(["KRW", "원화"])),
                         currentStatus: get(["Current status", "진행현황", "상태"]), jv: get(["JV", "컨소시엄"]),
                         evaluation: get(["Evaluation", "평가방식", "Evaluation Criteria"]), tenderLink: get(["Site Link", "Link", "링크"]),
-                        isHidden: isRowHidden || isStriked, updateType: 'UNCHANGED', changedFields: []
+                        isHidden: !!(isRowHidden || isStriked), updateType: 'UNCHANGED', changedFields: []
                     });
                 }
             });
@@ -1132,7 +1133,7 @@ const App = (() => {
                 if(confirm("모든 데이터를 초기화하시겠습니까? 현재 상태는 히스토리에 저장됩니다.")) { 
                     Helpers.saveToHistory('Database Reset');
                     db = []; 
-                    dbRef.set(db).then(() => {
+                    dbRef.set([]).then(() => {
                         localStorage.removeItem('tender_db_v3'); 
                         this.render(); 
                         alert("데이터베이스가 초기화되었습니다.");
@@ -1166,8 +1167,9 @@ const App = (() => {
                 const { rows, ws, sheetName } = await ExcelParser.read(file);
                 db = Comparator.diff(db, ExcelParser.process(rows, ws));
                 
-                // Commit to Firebase (Shared Truth)
-                await dbRef.set(db);
+                // Commit to Firebase (Shared Truth) - Sanitized
+                const sanitizedDB = JSON.parse(JSON.stringify(db));
+                await dbRef.set(sanitizedDB);
                 
                 localStorage.setItem('tender_db_v3', JSON.stringify(db));
                 this.render(); 
@@ -1434,7 +1436,8 @@ const App = (() => {
                     if (Array.isArray(data)) {
                         if (confirm(`백업 파일에서 ${data.length}개의 항목을 불러오시겠습니까? 기존 데이터는 유지되며 중복은 자동으로 처리됩니다.`)) {
                             db = Comparator.diff(db, data);
-                            dbRef.set(db).then(() => {
+                            const sanitizedDB = JSON.parse(JSON.stringify(db));
+                            dbRef.set(sanitizedDB).then(() => {
                                 localStorage.setItem('tender_db_v3', JSON.stringify(db));
                                 this.render();
                                 alert("데이터 복원이 완료되었습니다.");
