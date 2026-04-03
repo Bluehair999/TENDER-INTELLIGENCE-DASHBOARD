@@ -1165,9 +1165,17 @@ const App = (() => {
                 Helpers.saveToHistory('Before Excel Upload');
                 const { rows, ws, sheetName } = await ExcelParser.read(file);
                 db = Comparator.diff(db, ExcelParser.process(rows, ws));
+                
+                // Commit to Firebase (Shared Truth)
+                await dbRef.set(db);
+                
                 localStorage.setItem('tender_db_v3', JSON.stringify(db));
-                this.render(); alert(`[${sheetName}] 완료`);
-            } catch (err) { console.error(err); alert("오류 발생"); }
+                this.render(); 
+                alert(`[${sheetName}] 서버 실시간 동기화 완료!`);
+            } catch (err) { 
+                console.error(err); 
+                alert("오류 발생: " + err.message); 
+            }
             finally { if (ld) ld.classList.add('hidden'); }
         },
         render() {
