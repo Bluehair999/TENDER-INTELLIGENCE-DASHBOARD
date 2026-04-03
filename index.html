@@ -509,7 +509,7 @@ tr.row-cancelled .code-text { text-decoration: line-through; }
     <div class="app-wrapper">
         <header class="main-header glass">
             <div class="header-left">
-                <i data-lucide="shield-check" class="brand-icon"></i>
+                <i data-lucide="shield-check" class="brand-icon" style="cursor:pointer;" onclick="App.login()" title="관리자 로그인"></i>
                 <h1 class="brand-title">TENDER <span>INTELLIGENCE</span> DASHBOARD <small class="dept-tag">by 철도4부</small></h1>
             </div>
             <div class="header-right">
@@ -1941,7 +1941,7 @@ const App = (() => {
         theme: localStorage.getItem('tender_theme') || 'light',
         calendarDate: new Date(),
         adminPassword: '1234',
-        _isAuth: false,
+        _isAuth: sessionStorage.getItem('tender_auth') === 'true',
         history: JSON.parse(localStorage.getItem('tender_db_history') || '[]')
     };
 
@@ -2007,6 +2007,7 @@ const App = (() => {
             if (pw === null) return false;
             if (pw === state.adminPassword) {
                 state._isAuth = true;
+                sessionStorage.setItem('tender_auth', 'true');
                 return true;
             }
             alert("비밀번호가 틀렸습니다.");
@@ -2593,7 +2594,9 @@ const App = (() => {
         showDetail: (id) => UI.showDetail(id),
         openCalendar: () => UI.openCalendar(),
         showCalendarTooltip: (el) => UI.showCalendarTooltip(el),
-        hideCalendarTooltip: () => UI.hideCalendarTooltip()
+        hideCalendarTooltip: () => UI.hideCalendarTooltip(),
+        restoreFromHistory: (index) => Helpers.restoreFromHistory(index),
+        login: () => Helpers.checkAuth()
     };
 })();
 App.init();
