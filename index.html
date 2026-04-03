@@ -2200,17 +2200,37 @@ const App = (() => {
                 if (response.ok) {
                     const sharedData = await response.json();
                     if (Array.isArray(sharedData) && sharedData.length > 0) {
-                        // Priority: Local Storage (User Edits) > Server Data (Shared)
-                        const localData = localStorage.getItem('tender_db_v3');
-                        if (!localData) {
+                        const localJSON = localStorage.getItem('tender_db_v3');
+                        if (!localJSON) {
                             db = sharedData;
                             localStorage.setItem('tender_db_v3', JSON.stringify(db));
-                            console.log("Loaded data from db.json");
+                            console.log("Empty local storage, loaded from server db.json");
+                        } else {
+                            // If local is DIFFERENT from server, we show a sync warning
+                            if (localJSON !== JSON.stringify(sharedData)) {
+                                state.serverSyncNeeded = true;
+                                console.log("Local changes detected, server data is different.");
+                            } else {
+                                db = sharedData; // Perfectly synced
+                            }
                         }
                     }
                 }
             } catch (e) {
-                console.warn("db.json not found or could not be loaded, using embedded/local data.");
+                console.warn("Shared data fetch skipped or failed.", e);
+            }
+        },
+        syncWithServer() {
+            if (confirm("서버의 최신 데이터로 업데이트하시겠습니까? 현재 로컬에서 수정한 내용은 사라질 수 있습니다.")) {
+                fetch('db.json').then(r => r.json()).then(data => {
+                    db = data;
+                    localStorage.setItem('tender_db_v3', JSON.stringify(db));
+                    state.serverSyncNeeded = false;
+                    const banner = document.getElementById('sync-banner');
+                    if (banner) banner.remove();
+                    this.render();
+                    alert("서버와 동기화되었습니다.");
+                });
             }
         },
         migrate() {
@@ -2347,6 +2367,20 @@ const App = (() => {
                 if (window.lucide) lucide.createIcons();
                 const updateEl = document.getElementById('last-update-time');
                 if (updateEl) updateEl.innerText = `Update: ${new Date().toLocaleTimeString()}`;
+                
+                // Server sync message
+                const oldBanner = document.getElementById('sync-banner');
+                if (oldBanner) oldBanner.remove();
+                if (state.serverSyncNeeded) {
+                    const header = document.querySelector('header.glass');
+                    if (header) {
+                        header.insertAdjacentHTML('afterend', `
+                            <div id="sync-banner" class="sync-banner glass animate-in" style="background: rgba(59, 130, 246, 0.2); border-bottom: 1px solid var(--accent-primary); padding: 8px; text-align: center; font-size: 0.8rem; font-weight: 500;">
+                                🔄 서버에 새로운 데이터가 있습니다. <a href="#" onclick="window.App.syncWithServer(); return false;" style="color: var(--accent-primary); text-decoration: underline; cursor: pointer;">서버 데이터와 동기화하기</a>
+                            </div>
+                        `);
+                    }
+                }
             } catch (err) { console.error("Render Error:", err); }
         },
         syncTabs() { document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === state.filters.tab)); },
@@ -2621,6 +2655,7 @@ const App = (() => {
         showCalendarTooltip: (el) => UI.showCalendarTooltip(el),
         hideCalendarTooltip: () => UI.hideCalendarTooltip(),
         restoreFromHistory: (index) => Helpers.restoreFromHistory(index),
+        syncWithServer: () => UI.syncWithServer(),
         login: () => Helpers.checkAuth()
     };
 })();
